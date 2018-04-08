@@ -1,0 +1,5 @@
+".\Objects\STARTUP.obj",
+".\Objects\接收.obj",
+".\Objects\1602.obj" 
+TO ".\Objects\接收" 
+PRINT(".\Listings\接收.m51") RAMSIZE(256) 

@@ -1,0 +1,201 @@
+C51 COMPILER V6.12  MAIN                                                                   07/02/2012 09:16:41 PAGE 1   
+
+
+C51 COMPILER V6.12, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE .\main.c DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          
+   2          #include<reg52.h>
+   3          #include"LCD_driver.h"
+   4          #include <intrins.h>
+   5          
+   6          struct pix_
+   7          {
+   8          	unsigned int x;
+   9          	unsigned int y;
+  10          };
+  11          
+  12          struct pix_ Tp_pix;	 //当前触控坐标的取样值  
+  13          
+  14          sbit T_CS      =    P3^6;
+  15          sbit DIN       =    P3^1;
+  16          sbit DCLK	   =    P3^2;
+  17          sbit DOUT      =    P3^3;
+  18          sbit BUSY      =    P3^5;	 
+  19          sbit IRQ       =    P3^4;   //检测触摸屏响应信号
+  20          
+  21          unsigned int TP_X,TP_Y;
+  22          
+  23          //******************************************************************************
+  24          //******************************************************************************
+  25          void spistar()                                     //SPI开始
+  26          {
+  27   1      T_CS=1;
+  28   1      DCLK=1;
+  29   1      DIN=1;
+  30   1      DCLK=1;
+  31   1      }
+  32          //******************************************************************************
+  33          //******************************************************************************
+  34          void WriteCharTo7843(unsigned char num)//SPI写数据
+  35          {
+  36   1      	unsigned char count=0;
+  37   1      	DCLK=0;
+  38   1      	for(count=0;count<8;count++)
+  39   1      	{
+  40   2      	num<<=1;
+  41   2      	DIN=CY;
+  42   2      	DCLK=0; _nop_();_nop_();_nop_(); //上升沿有效
+  43   2      	DCLK=1; _nop_();_nop_();_nop_();
+  44   2      	}
+  45   1      }
+  46          
+  47          //******************************************************************************
+  48          //******************************************************************************
+  49          unsigned int ReadFromCharFrom7843() //SPI 读数据
+  50          {
+  51   1      	unsigned char count=0;
+  52   1      	unsigned int Num=0;
+  53   1      	for(count=0;count<12;count++)
+  54   1      	{
+  55   2      	Num<<=1;
+C51 COMPILER V6.12  MAIN                                                                   07/02/2012 09:16:41 PAGE 2   
+
+  56   2      	DCLK=1; _nop_();_nop_();_nop_(); //下降沿有效
+  57   2      	DCLK=0; _nop_();_nop_();_nop_();
+  58   2      	if(DOUT) Num++;
+  59   2      	}
+  60   1      	return(Num);
+  61   1      }
+  62          
+  63          //******************************************************************************
+  64          //******************************************************************************
+  65          unsigned char Makpix(struct pix_ pix1,struct pix_ pix2)
+  66          {
+  67   1        unsigned char l=0;
+  68   1        int x=pix1.x>pix2.x?pix1.x-pix2.x:pix2.x-pix1.x;
+  69   1        int y=pix1.y>pix2.y?pix1.y-pix2.y:pix2.y-pix1.y;
+  70   1        if(x<3&&y<3)	 //软件滤波，2次取样的值相差太大的视为噪声
+  71   1      	{
+  72   2      	  l=1;
+  73   2      	  Tp_pix.x=pix1.x;
+  74   2           Tp_pix.y=pix1.y;
+  75   2      	}
+  76   1        return l;
+  77   1      }
+  78          
+  79          //******************************************************************************
+  80          //******************************************************************************
+  81          struct pix_ AD7843()            
+  82          {
+  83   1        struct pix_ pix;
+  84   1        T_CS=0;
+  85   1        WriteCharTo7843(0x90); //送控制字 10010000 即用差分方式读X坐标
+  86   1        DCLK=1; _nop_();_nop_();_nop_();_nop_();
+  87   1        DCLK=0; _nop_();_nop_();_nop_();_nop_();
+  88   1        pix.y=ReadFromCharFrom7843();
+  89   1        WriteCharTo7843(0xD0); //送控制字 11010000 即用差分方式读Y坐标
+  90   1        DCLK=1; _nop_();_nop_();_nop_();_nop_();
+  91   1        DCLK=0; _nop_();_nop_();_nop_();_nop_();
+  92   1        pix.x=ReadFromCharFrom7843();
+  93   1        T_CS=1; 
+  94   1        return pix;
+  95   1      }
+  96          
+  97          //******************************************************************************
+  98          //******************************************************************************
+  99          unsigned char Getpix() //取采样值
+ 100          {
+ 101   1      	struct pix_ pix1;
+ 102   1      	struct pix_ pix2; 
+ 103   1      	pix1=AD7843();
+ 104   1      	pix2=AD7843();
+ 105   1       	return	Makpix(pix1,pix2);	
+ 106   1      }
+ 107          
+ 108          //******************************************************************************
+ 109          //******************************************************************************
+ 110          void point()
+ 111          {
+ 112   1      	unsigned int lx,ly;	
+ 113   1      	long i;
+ 114   1      	i=0;
+ 115   1      	while(i<200000)
+ 116   1      	{
+ 117   2      		if(IRQ==0)
+C51 COMPILER V6.12  MAIN                                                                   07/02/2012 09:16:41 PAGE 3   
+
+ 118   2      		{
+ 119   3      			i=0;
+ 120   3      				if(Getpix()==1) //得到当前TP的取样值，此处使用软件滤波，2次取样的值相差太大的视为噪声
+ 121   3      			 {
+ 122   4       		        lx=((Tp_pix.x)*10/142)-270-((Tp_pix.x)/170);
+ 123   4      		   	    ly=335-((Tp_pix.y)/11)+((Tp_pix.y)/200);
+ 124   4      				Address_set(lx,ly,lx+2,ly+2);
+ 125   4      				LCD_Write_DATA(0,255);
+ 126   4      				LCD_Write_DATA(0,255);
+ 127   4      				LCD_Write_DATA(0,255);
+ 128   4      				LCD_Write_DATA(0,255);
+ 129   4      				LCD_Write_DATA(0,255);
+ 130   4      				LCD_Write_DATA(0,255);
+ 131   4      				LCD_Write_DATA(0,255);
+ 132   4      				LCD_Write_DATA(0,255);
+ 133   4      				LCD_Write_DATA(0,255);			
+ 134   4      			 }		
+ 135   3      		}
+ 136   2      		else
+ 137   2      		{
+ 138   3      			i++;
+ 139   3      		}
+ 140   2      		
+ 141   2      	} 
+ 142   1      }
+ 143          
+ 144          //******************************************************************************
+ 145          //******************************************************************************
+ 146          main()
+ 147          { 	 	
+ 148   1         unsigned int j;
+ 149   1         LCD_Init();  //TFT初始化		
+ 150   1         spistar();  //模拟spi初始化 	
+ 151   1         Pant(0xFF,0xFF); 			
+ 152   1         LCD_CS =0;  //打开片选使能
+ 153   1         ChineseChar(14+46,10,colors[4],colors[7],1);
+ 154   1         ChineseChar(46+46,10,colors[4],colors[7],2);
+ 155   1         ChineseChar(78+46,10,colors[4],colors[7],3);
+ 156   1         ChineseChar(110+46,10,colors[4],colors[7],4);
+ 157   1         LCD_CS =1;  //关闭片选使能
+ 158   1         while(1)
+ 159   1       		{
+ 160   2      		  LCD_CS =0;  //打开片选使能
+ 161   2      		  for(j=0;j<6;j++)
+ 162   2      			{	
+ 163   3      				if (IRQ==0)
+ 164   3      				{ 
+ 165   4      			     point();	
+ 166   4      
+ 167   4      				}
+ 168   3      		 delayms(10);
+ 169   3       	
+ 170   3         	        } 
+ 171   2      		}
+ 172   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    728    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V6.12  MAIN                                                                   07/02/2012 09:16:41 PAGE 4   
+
+   DATA SIZE        =      8      30
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

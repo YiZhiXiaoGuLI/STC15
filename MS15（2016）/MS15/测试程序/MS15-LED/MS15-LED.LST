@@ -1,0 +1,183 @@
+C51 COMPILER V9.01   MS15_LED                                                              03/31/2014 09:10:57 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE MS15_LED
+OBJECT MODULE PLACED IN MS15-LED.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE MS15-LED.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //**************************************************************************************//
+   2          //******************MS15开发板LED（IO)测试程序******************************************//
+   3          //*******************本程序参考了STC官网例程********************************************//
+   4          //********************* hiold.taobao.com ***********************************************//
+   5          #include "reg51.h"
+   6          
+   7          sfr P4 = 0xc0;
+   8          sfr P5 = 0xc8;
+   9          
+  10          void delay()
+  11          {
+  12   1          int i, j;
+  13   1      
+  14   1          for (i=0; i<800; i++)
+  15   1          for (j=0; j<500; j++);
+  16   1      }
+  17          
+  18          
+  19          void main()
+  20          {
+  21   1      
+  22   1          P0 = 0xfe;
+  23   1          delay();
+  24   1          P0 = 0xfc;
+  25   1          delay();
+  26   1          P0 = 0xf8;
+  27   1          delay();
+  28   1          P0 = 0xf0;
+  29   1          delay();
+  30   1          P0 = 0xe0;
+  31   1          delay();
+  32   1          P0 = 0xc0;
+  33   1          delay();
+  34   1          P0 = 0x80;
+  35   1          delay();
+  36   1          P0 = 0x00;
+  37   1          delay();
+  38   1          P0 = 0xff;
+  39   1      
+  40   1          P1 = 0xfe;
+  41   1          delay();
+  42   1          P1 = 0xfc;
+  43   1          delay();
+  44   1          P1 = 0xf8;
+  45   1          delay();
+  46   1          P1 = 0xf0;
+  47   1          delay();
+  48   1          P1 = 0xe0;
+  49   1          delay();
+  50   1          P1 = 0xc0;
+  51   1          delay();
+  52   1          P1 = 0x80;
+  53   1          delay();
+  54   1          P1 = 0x00;
+  55   1          delay();
+C51 COMPILER V9.01   MS15_LED                                                              03/31/2014 09:10:57 PAGE 2   
+
+  56   1          P1 = 0xff;
+  57   1      
+  58   1          P3 = 0xfe;
+  59   1          delay();
+  60   1          P3 = 0xfc;
+  61   1          delay();
+  62   1          P3 = 0xf8;
+  63   1          delay();
+  64   1          P3 = 0xf0;
+  65   1          delay();
+  66   1          P3 = 0xe0;
+  67   1          delay();
+  68   1          P3 = 0xc0;
+  69   1          delay();
+  70   1          P3 = 0x80;
+  71   1          delay();
+  72   1          P3 = 0x00;
+  73   1          delay();
+  74   1          P3 = 0xff;
+  75   1      
+  76   1          P2 = 0xfe;
+  77   1          delay();
+  78   1          P2 = 0xfc;
+  79   1          delay();
+  80   1          P2 = 0xf8;
+  81   1          delay();
+  82   1          P2 = 0xf0;
+  83   1          delay();
+  84   1          P2 = 0xe0;
+  85   1          delay();
+  86   1          P2 = 0xc0;
+  87   1          delay();
+  88   1          P2 = 0x80;
+  89   1          delay();
+  90   1          P2 = 0x00;
+  91   1          delay();
+  92   1          P2 = 0xff;
+  93   1      
+  94   1          P4 = 0xfe;
+  95   1          delay();
+  96   1          P4 = 0xfc;
+  97   1          delay();
+  98   1          P4 = 0xf8;
+  99   1          delay();
+ 100   1          P4 = 0xf0;
+ 101   1          delay();
+ 102   1          P4 = 0xe0;
+ 103   1          delay();
+ 104   1          P4 = 0xc0;
+ 105   1          delay();
+ 106   1          P4 = 0x80;
+ 107   1          delay();
+ 108   1          P4 = 0x00;
+ 109   1          delay();
+ 110   1          P4 = 0xff;
+ 111   1      
+ 112   1          P5 = 0xfe;
+ 113   1          delay();
+ 114   1          P5 = 0xfc;
+ 115   1          delay();
+ 116   1          P5 = 0xf8;
+ 117   1          delay();
+C51 COMPILER V9.01   MS15_LED                                                              03/31/2014 09:10:57 PAGE 3   
+
+ 118   1          P5 = 0xf0;
+ 119   1          delay();
+ 120   1          P5 = 0xe0;
+ 121   1          delay();
+ 122   1          P5 = 0xc0;
+ 123   1          delay();
+ 124   1          P5 = 0x80;
+ 125   1          delay();
+ 126   1          P5 = 0x00;
+ 127   1          delay();
+ 128   1          P5 = 0xff;
+ 129   1      
+ 130   1          while (1)
+ 131   1          {
+ 132   2              P0 = 0x00;
+ 133   2              delay();
+ 134   2              P0 = 0xff;
+ 135   2      
+ 136   2              P1 = 0x00;
+ 137   2              delay();
+ 138   2              P1 = 0xff;
+ 139   2      
+ 140   2              P3 = 0x00;
+ 141   2              delay();
+ 142   2              P3 = 0xff;
+ 143   2      
+ 144   2              P2 = 0x00;
+ 145   2              delay();
+ 146   2              P2 = 0xff;
+ 147   2      
+ 148   2              P4 = 0x00;
+ 149   2              delay();
+ 150   2              P4 = 0xff;
+ 151   2      
+ 152   2              P5 = 0x00;
+ 153   2              delay();
+ 154   2              P5 = 0xff;
+ 155   2          }
+ 156   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    391    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

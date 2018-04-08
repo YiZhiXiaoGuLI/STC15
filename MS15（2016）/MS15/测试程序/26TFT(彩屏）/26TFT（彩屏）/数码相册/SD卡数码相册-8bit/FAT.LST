@@ -1,0 +1,927 @@
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE FAT
+OBJECT MODULE PLACED IN FAT.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE FAT.c LARGE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "fat.h"
+   2          #include "sd.h"        //´æ´¢Éè±¸µÄÉÈÇø¶ÁĞ´Çı¶¯£¬ÕâÀïÊÇSD¿¨
+   3          #include "string.h"
+   4          
+   5          //È«¾Ö±äÁ¿¶¨Òå
+   6          struct direntry idata temp_rec;
+   7          INT8 temp_dir_name[13]; 
+   8          UINT32 temp_dir_cluster;
+   9          UINT32 temp_last_cluster;
+  10          
+  11          UINT8 FAT32_Buffer[512]; //ÉÈÇøÊı¾İ¶ÁĞ´»º³åÇø,ÓÉÍâ²¿Ìá¹©
+  12          
+  13          extern struct FAT32_Init_Arg *pArg; //³õÊ¼»¯²ÎÊı½á¹¹ÌåÖ¸Õë£¬ÓÃÒÔÖ¸ÏòÄ³Ò»´æ´¢Éè±¸µÄ³õÊ¼»¯²ÎÊı½á¹¹Ìå£¬ÓÉÍâ²¿
+             -Ìá¹©
+  14          
+  15          uchar (*pRS)(ulong,uchar *); //Ö¸ÏòÊµ¼Ê´æ´¢Éè±¸µÄ¶ÁÉÈÇøº¯ÊıµÄº¯ÊıÖ¸Õë£¬ÓÃÒÔÊµÏÖ¶ÔÉè±¸µÄÖ§³Ö
+  16          uchar (*pWS)(ulong,uchar *); //Ö¸ÏòÊµ¼Ê´æ´¢Éè±¸µÄĞ´ÉÈÇøº¯ÊıµÄº¯ÊıÖ¸Õë£¬ÓÃÒÔÊµÏÖ¶ÔÉè±¸µÄÖ§³Ö
+  17          
+  18          extern uchar Dev_No;
+  19          
+  20          /******************************************************************
+  21           - ¹¦ÄÜÃèÊö£ºFATµÄ´æ´¢Éè±¸µ×²ãÇı¶¯½Ó¿Ú£¬¶ÁÈ¡´æ´¢Éè±¸µÄaddrÉÈÇøµÄ
+  22                       512¸ö×Ö½ÚµÄÊı¾İ·ÅÈëbufÊı¾İ»º³åÇøÖĞ
+  23           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+  24           - º¯ÊıÊôĞÔ£ºÄÚ²¿£¨ÓÃÓÚÓë´æ´¢Éè±¸µÄµ×²ãÇı¶¯¶Ô½Ó£©
+  25           - ²ÎÊıËµÃ÷£ºaddr:ÉÈÇøµØÖ·
+  26                       buf:Ö¸ÏòÊı¾İ»º³åÇø
+  27           - ·µ»ØËµÃ÷£º0±íÊ¾¶ÁÈ¡ÉÈÇø³É¹¦£¬·ñÔòÊ§°Ü
+  28           - ×¢£ºÕâÀï¼ÓÈëÁËÌìÀÇĞÇ¾«»ª°åÉÏµÄÈıÖÖ´æ´¢Éè±¸£¬¼´SD¿¨£¨ÓĞĞ§£©¡¢UÅÌ¡¢
+  29                 CF¿¨Í¨¹ıÔÚ³ÌĞòÖĞ¶¯Ì¬µÄÇĞ»»²»Í¬µÄÉè±¸Çı¶¯£¬´Ó¶øÊµÏÖ¶àÉè±¸(¼´Í¬
+  30                     Ê±¶Ô¶àÖÖ´æ´¢Éè±¸½øĞĞ²Ù×÷£¬±ÈÈç´ÓSD¿¨¿½±´ÎÄ¼şµ½UÅÌµÈµÈ)£¬²»Í¬
+  31                     Çı¶¯µÄÇĞ»»£¬Ö»ĞèÒªÔÚ³ÌĞòÖĞ¸Ä±äDev_NoÕâ¸öÈ«¾Ö±äÁ¿µÄÖµ¼´¿É
+  32           ******************************************************************/
+  33          
+  34          UINT8 FAT32_ReadSector(UINT32 addr,UINT8 *buf) 
+  35          {
+  36   1              switch(Dev_No)
+  37   1              {
+  38   2                      case SDCARD:
+  39   2                              pRS=SD_Read_Sector;
+  40   2                              break;
+  41   2                      case UDISK:
+  42   2                              //pRS=CH375_Read_Sector;
+  43   2                              break;
+  44   2                      case CFCARD:
+  45   2                              //pRS=CF_Read_Sector;
+  46   2                              //ÎŞ
+  47   2                              break;
+  48   2                      case OTHER:
+  49   2                              //ÎŞ
+  50   2                              break;
+  51   2              }
+  52   1              return (*pRS)(addr,buf);  //Ìæ»»³ÉÊµ¼Ê´æ´¢Æ÷µÄÉÈÇø¶Áº¯Êı£¬ÕâÀïÊÇSD¿¨ÉÈÇø¶Áº¯Êı
+  53   1      }
+  54          
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 2   
+
+  55          /******************************************************************
+  56           - ¹¦ÄÜÃèÊö£ºFATµÄ´æ´¢Éè±¸µ×²ãÇı¶¯½Ó¿Ú£¬½«bufÊı¾İ»º³åÇøÖĞµÄ512¸ö
+  57                       ×Ö½ÚµÄÊı¾İĞ´Èëµ½´æ´¢Éè±¸µÄaddrÉÈÇøÖĞ
+  58           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+  59           - º¯ÊıÊôĞÔ£ºÄÚ²¿£¨ÓÃÓÚÓë´æ´¢Éè±¸µÄµ×²ãÇı¶¯¶Ô½Ó£©
+  60           - ²ÎÊıËµÃ÷£ºaddr:ÉÈÇøµØÖ·
+  61                       buf:Ö¸ÏòÊı¾İ»º³åÇø
+  62           - ·µ»ØËµÃ÷£º0±íÊ¾¶ÁÈ¡ÉÈÇø³É¹¦£¬·ñÔòÊ§°Ü
+  63           - ×¢£ºÂÔ
+  64           ******************************************************************/
+  65          
+  66          /*UINT8 FAT32_WriteSector(UINT32 addr,UINT8 *buf)
+  67          {
+  68           switch(Dev_No)
+  69           {
+  70            case SDCARD:
+  71                   pWS=SD_Write_Sector;
+  72                   break;
+  73            case UDISK:
+  74                   //pWS=CH375_Write_Sector;
+  75                   break;
+  76            case CFCARD:
+  77                   //pWS=CF_Write_Sector;
+  78                   //ÎŞ
+  79                   break;
+  80            case OTHER:
+  81                   //ÎŞ
+  82                   break;
+  83           }
+  84           return (*pWS)(addr,buf); //Ìæ»»³ÉÊµ¼Ê´æ´¢Æ÷µÄÉÈÇøĞ´º¯Êı£¬ÕâÀïÊÇSD¿¨ÉÈÇøĞ´º¯Êı
+  85          }
+  86          */
+  87          /******************************************************************
+  88           - ¹¦ÄÜÃèÊö£ºĞ¡¶Ë×ª´ó¶Ë£¬¼´LittleEndian³µBigEndian
+  89           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+  90           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+  91           - ²ÎÊıËµÃ÷£ºdat:Ö¸ÏòÒª×ªÎª´ó¶ËµÄ×Ö½ÚĞòÁĞ
+  92                       len:Òª×ªÎª´ó¶ËµÄ×Ö½ÚĞòÁĞ³¤¶È
+  93           - ·µ»ØËµÃ÷£º×ªÎª´ó¶ËÄ£Ê½ºó£¬×Ö½ÚĞòÁĞËù±í´ïµÄÊı¾İ
+  94           - ×¢£º±ÈÈç£ºĞ¡¶ËÄ£Ê½µÄ       0x33 0x22 0x11 0x00  (µÍ×Ö½ÚÔÚÇ°)
+  95                       ×ªÎª´ó¶ËÄ£Ê½ºóÎª 0x00 0x11 0x22 0x33  (¸ß×Ö½ÚÔÚÇ°)
+  96                       Ëù±í´ïµÄÊıÖµÎª   0x00112233
+  97                       (CISCµÄCPUÍ¨³£ÊÇĞ¡¶ËµÄ£¬ËùÒÔFAT32Ò²Éè¼ÆÎªĞ¡¶Ë£¬¶øµ¥Æ¬»ú
+  98                        ÕâÖÖRISCµÄCPU£¬Í¨³£À´Ëµ¶¼ÊÇ´ó¶ËµÄ£¬ËùÒÔĞèÒªÕâ¸öº¯Êı½«×Ö
+  99                        ½ÚµÄ´æ·Å´ÎĞò½øĞĞµ÷Õû£¬²ÅÄÜµÃµ½ÕıÈ·µÄÊıÖµ)
+ 100           ******************************************************************/
+ 101          
+ 102          UINT32 LE2BE(UINT8 *dat,UINT8 len) 
+ 103          {
+ 104   1       UINT32 temp=0;
+ 105   1       UINT32 fact=1;
+ 106   1       UINT8  i=0;
+ 107   1       for(i=0;i<len;i++)
+ 108   1       {
+ 109   2        temp+=dat[i]*fact; //½«¸÷×Ö½Ú³ËÒÔÏàÓ¦µÄÈ¨ÖµºóÀÛ¼Ó
+ 110   2        fact*=256; //¸üĞÂÈ¨Öµ
+ 111   2       }
+ 112   1       return temp;
+ 113   1      }
+ 114          
+ 115          /******************************************************************
+ 116           - ¹¦ÄÜÃèÊö£º½«Ğ¡×Ö×Ö·û×ªÎª´óĞ´
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 3   
+
+ 117           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 118           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 119           - ²ÎÊıËµÃ÷£ºc:Òª×ª»»Îª´óĞ´µÄ×Ö·û            
+ 120           - ·µ»ØËµÃ÷£ºÒª×ª»»µÄ×Ö½ÚµÄÏàÓ¦µÄ´óĞ´×Ö·û
+ 121           - ×¢£ºÖ»¶ÔĞ¡Ğ´×Ö·ûÓĞĞ§£¬Èç¹û²»ÊÇa~zµÄĞ¡Ğ´×Ö·û£¬½«Ö±½Ó·µ»Ø
+ 122           ******************************************************************/
+ 123          
+ 124          INT8 L2U(INT8 c)
+ 125          {
+ 126   1       if(c>='a' && c<='z') return c+'A'-'a';
+ 127   1       else return c;
+ 128   1      }
+ 129          
+ 130          /******************************************************************
+ 131           - ¹¦ÄÜÃèÊö£º¶ÁÈ¡0ÉÈÇø£¬¼ì²âÓĞÃ»ÓĞMBR(Ö÷Òıµ¼¼ÇÂ¼)
+ 132           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 133           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 134           - ²ÎÊıËµÃ÷£ºÎŞ     
+ 135           - ·µ»ØËµÃ÷£º1±íÊ¾¼ì²âµ½MBR£¬0±íÊ¾Ã»ÓĞ¼ì²âµ½MBR
+ 136           - ×¢£ºÓĞĞ©´æ´¢Éè±¸¸ñÊ½»¯ÎªFAT32ÒÔºó£¬Ã»ÓĞMBR£¬Ôò0ÉÈÇø¾ÍÊÇDBR
+ 137                 Èç¹ûÓĞMBR£¬¾ÍĞèÒª¶ÔÆä½øĞĞ½âÎö£¬ÒÔµÃµ½DBRµÄÉÈÇøÎ»ÖÃ£¬Í¬Ê±MBRÖĞ
+ 138                 »¹º¬·ÖÇø¡¢·ÖÇøÈİÁ¿µÈĞÅÏ¢
+ 139           ******************************************************************/
+ 140          
+ 141          /*UINT8 FAT32_is_MBR()
+ 142          {
+ 143                  UINT8 result;
+ 144                  FAT32_ReadSector(0,FAT32_Buffer);
+ 145                  if(FAT32_Buffer[0]!=0xEB) 
+ 146                  {
+ 147                          result=1;
+ 148                  }
+ 149                  else 
+ 150                  {
+ 151                          result=0;
+ 152                  }
+ 153                  return result;
+ 154          }*/
+ 155          
+ 156          /***********************************************************************
+ 157           - ¹¦ÄÜÃèÊö£ºµÃµ½DBRËùÔÚµÄÉÈÇøºÅ(Èç¹ûÃ»ÓĞMBR£¬ÔòDBR¾ÍÔÚ0ÉÈÇø)
+ 158           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 159           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 160           - ²ÎÊıËµÃ÷£ºÎŞ     
+ 161           - ·µ»ØËµÃ÷£ºDBRµÄÉÈÇøµØÖ·
+ 162           - ×¢£ºDBRÖĞ°üº¬ÁËºÜ¶àÓĞÓÃµÄ²ÎÊıĞÅÏ¢£¬Òò´ËÕıÈ·¶¨Î»DBRÉÈÇøµÄÎ»ÖÃ£¬ÊÇ¼«Îª
+ 163                 ÖØÒªµÄ£¬ºóÃæ½«ÓĞ×¨ÃÅµÄº¯Êı¶ÔDBR½øĞĞ½âÎö£¬ÕıÈ·½âÎöDBRÊÇÊµÏÖFAT32µÄ
+ 164                 »ù´¡
+ 165           ***********************************************************************/
+ 166          
+ 167          UINT16 FAT32_Find_DBR()
+ 168          {
+ 169   1       UINT16 sec_dbr;
+ 170   1       FAT32_ReadSector(0,FAT32_Buffer);
+ 171   1       if(FAT32_Buffer[0]!=0xeb) 
+ 172   1       {
+ 173   2        sec_dbr=LE2BE(((((struct PartSector *)(FAT32_Buffer))->Part[0]).StartLBA),4);
+ 174   2       }
+ 175   1       else
+ 176   1       {
+ 177   2        sec_dbr=0;
+ 178   2       }
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 4   
+
+ 179   1       return sec_dbr;
+ 180   1      }
+ 181          
+ 182          /***********************************************************************
+ 183           - ¹¦ÄÜÃèÊö£º»ñÈ¡·ÖÇøµÄ×ÜÈİÁ¿
+ 184           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 185           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 186           - ²ÎÊıËµÃ÷£ºÎŞ     
+ 187           - ·µ»ØËµÃ÷£º·ÖÇøÈİÁ¿Öµ£¬µ¥Î»Îª×Ö½Ú
+ 188           - ×¢£ºÕâÀïµÃµ½µÄ×ÜÈİÁ¿ÊÇFAT32·ÖÇøµÄÈİÁ¿£¬Ò»¶¨Ğ¡ÓÚÊµ¼ÊµÄÎïÀíÈİÁ¿
+ 189           ***********************************************************************/
+ 190          
+ 191          UINT32 FAT32_Get_Total_Size() 
+ 192          {
+ 193   1       UINT32 temp;
+ 194   1       FAT32_ReadSector(pArg->BPB_Sector_No,FAT32_Buffer);
+ 195   1       FAT32_ReadSector(pArg->BPB_Sector_No,FAT32_Buffer);
+ 196   1       temp=((LE2BE((((struct FAT32_BPB *)(FAT32_Buffer))->BPB_TotSec32),4)))*pArg->BytesPerSector;
+ 197   1       return temp;
+ 198   1      }
+ 199          
+ 200          /***********************************************************************
+ 201           - ¹¦ÄÜÃèÊö£º¶ÁÈ¡FSInfo»ñÈ¡×î½üµÄÒ»¸ö¿ÉÓÃ¿ÕÏĞ´Ø
+ 202           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 203           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 204           - ²ÎÊıËµÃ÷£ºÎŞ     
+ 205           - ·µ»ØËµÃ÷£º×î½üµÄÒ»¸ö¿ÉÓÃ¿ÕÏĞ´Ø
+ 206           - ×¢£ºFAT32ÖĞµÄFSInfoÉÈÇø(¾ø¶Ô1ÉÈÇø)ÖĞ¼ÇÂ¼ÁË×î½üµÄÒ»¸ö¿ÉÓÃ¿ÕÏĞ´Ø
+ 207           ***********************************************************************/
+ 208          
+ 209          UINT32 Search_Last_Usable_Cluster()
+ 210          {
+ 211   1              FAT32_ReadSector(1+pArg->BPB_Sector_No,FAT32_Buffer);
+ 212   1              return LE2BE(((struct FSInfo *)FAT32_Buffer)->Last_Cluster,4);
+ 213   1      }
+ 214          
+ 215          /***********************************************************************
+ 216           - ¹¦ÄÜÃèÊö£ºFAT32ÎÄ¼şÏµÍ³³õÊ¼»¯
+ 217           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 218           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 219           - ²ÎÊıËµÃ÷£ºFAT32_Init_ArgÀàĞÍµÄ½á¹¹ÌåÖ¸Õë£¬ÓÃÓÚ×°ÔØÒ»Ğ©ÖØÒªµÄ²ÎÊıĞÅÏ¢£¬
+ 220                       ÒÔ±¸ºóÃæÊ¹ÓÃ     
+ 221           - ·µ»ØËµÃ÷£ºÎŞ
+ 222           - ×¢£ºÔÚÊ¹ÓÃznFATÇ°£¬Õâ¸öº¯ÊıÊÇ±ØĞëÏÈ±»µ÷ÓÃµÄ£¬½«ºÜ¶à²ÎÊıĞÅÏ¢×°Èëµ½
+ 223                 argÖ¸ÏòµÄ½á¹¹ÌåÖĞ£¬±ÈÈçÉÈÇø´óĞ¡¡¢¸ùÄ¿Â¼µÄÎ»ÖÃ¡¢FAT±í´óĞ¡µÈµÈ¡£
+ 224                 ÕâĞ©²ÎÊı¾ø´ó²¿·ÖÊÇÀ´×ÔÓÚDBRµÄBPBÖĞ£¬Òò´Ë´Ëº¯ÊıÖ÷ÒªÔÚ×÷¶ÔDBRµÄ²ÎÊı½âÎö
+ 225           ***********************************************************************/
+ 226          
+ 227          void FAT32_Init()
+ 228          {
+ 229   1       struct FAT32_BPB *bpb;
+ 230   1      
+ 231   1       bpb=(struct FAT32_BPB *)(FAT32_Buffer);               //½«Êı¾İ»º³åÇøÖ¸Õë×ªÎªstruct FAT32_BPB ĞÍÖ¸Õë
+ 232   1      
+ 233   1       pArg->DEV_No=Dev_No; //×°ÈëÉè±¸ºÅ
+ 234   1      
+ 235   1       pArg->BPB_Sector_No   =FAT32_Find_DBR();               //FAT32_FindBPB()¿ÉÒÔ·µ»ØBPBËùÔÚµÄÉÈÇøºÅ
+ 236   1       pArg->BPB_Sector_No   =FAT32_Find_DBR();               //FAT32_FindBPB()¿ÉÒÔ·µ»ØBPBËùÔÚµÄÉÈÇøºÅ
+ 237   1       pArg->Total_Size      =FAT32_Get_Total_Size();         //FAT32_Get_Total_Size()¿ÉÒÔ·µ»Ø´ÅÅÌµÄ×ÜÈİÁ¿£¬µ¥Î»
+             -ÊÇ×Ö½Ú
+ 238   1       pArg->Total_Size      =FAT32_Get_Total_Size();         //FAT32_Get_Total_Size()¿ÉÒÔ·µ»Ø´ÅÅÌµÄ×ÜÈİÁ¿£¬µ¥Î»
+             -ÊÇÕ×
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 5   
+
+ 239   1      
+ 240   1       pArg->FATsectors      =LE2BE((bpb->BPB_FATSz32)    ,4);//×°ÈëFAT±íÕ¼ÓÃµÄÉÈÇøÊıµ½FATsectorsÖĞ
+ 241   1       pArg->FirstDirClust   =LE2BE((bpb->BPB_RootClus)   ,4);//×°Èë¸ùÄ¿Â¼´ØºÅµ½FirstDirClustÖĞ
+ 242   1       pArg->BytesPerSector  =LE2BE((bpb->BPB_BytesPerSec),2);//×°ÈëÃ¿ÉÈÇø×Ö½ÚÊıµ½BytesPerSectorÖĞ
+ 243   1       pArg->SectorsPerClust =LE2BE((bpb->BPB_SecPerClus) ,1);//×°ÈëÃ¿´ØÉÈÇøÊıµ½SectorsPerClust ÖĞ
+ 244   1       pArg->FirstFATSector  =LE2BE((bpb->BPB_RsvdSecCnt) ,2)+pArg->BPB_Sector_No;//×°ÈëµÚÒ»¸öFAT±íÉÈÇøºÅµ½First
+             -FATSector ÖĞ
+ 245   1       pArg->FirstDirSector  =(pArg->FirstFATSector)+(bpb->BPB_NumFATs[0])*(pArg->FATsectors); //×°ÈëµÚÒ»¸öÄ¿Â¼É
+             -ÈÇøµ½FirstDirSectorÖĞ
+ 246   1      
+ 247   1       temp_last_cluster=Search_Last_Usable_Cluster();
+ 248   1      }
+ 249          
+ 250          /***********************************************************************
+ 251           - ¹¦ÄÜÃèÊö£º»ñÈ¡Ê£ÓàÈİÁ¿
+ 252           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 253           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 254           - ²ÎÊıËµÃ÷£ºÎŞ    
+ 255           - ·µ»ØËµÃ÷£ºÊ£ÓàÈİÁ¿£¬µ¥Î»×Ö½Ú
+ 256           - ×¢£º´ÓFSInfoÖĞ¶ÁÈ¡¿ÕÏĞ´ØÊı£¬¶ø´Ó¼ÆËãµÃµ½Ê£ÓàµÄÈİÁ¿£¬µ¥Î»×Ö½Ú
+ 257           ***********************************************************************/
+ 258          
+ 259          /*UINT32 FAT32_Get_Remain_Cap()
+ 260          {
+ 261           FAT32_ReadSector(1+pArg->BPB_Sector_No,FAT32_Buffer);
+ 262           if(((struct FSInfo *)FAT32_Buffer)->Free_Cluster[0]==0xff 
+ 263           && ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[1]==0xff 
+ 264           && ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[2]==0xff 
+ 265           && ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[3]==0xff)
+ 266           return pArg->Total_Size;
+ 267           else
+ 268           return LE2BE(((struct FSInfo *)FAT32_Buffer)->Free_Cluster,4)*pArg->SectorsPerClust*pArg->BytesPerSector;
+             - 
+ 269          }
+ 270          */
+ 271          /***********************************************************************
+ 272           - ¹¦ÄÜÃèÊö£º¸üĞÂFSInfoÖĞµÄ¿ÉÓÃ¿ÕÏĞ´ØµÄÊıÁ¿
+ 273           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 274           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 275           - ²ÎÊıËµÃ÷£ºPlusOrMinus:¿ÉÓÃ¿ÕÏĞ´ØÊı¼Ó1»ò¼õ1    
+ 276           - ·µ»ØËµÃ÷£ºÎŞ
+ 277           - ×¢£º´´½¨ÎÄ¼ş¡¢×·¼ÓÊı¾İ¡¢É¾³ıÎÄ¼şµÈ²Ù×÷¶¼¿ÉÄÜ»áÊ¹¿ÉÓÃµÄ¿ÕÏĞ´ØÊı±ä»¯
+ 278                 Òª¼°Ê±¸üĞÂ
+ 279           ***********************************************************************/
+ 280          
+ 281          /*void FAT32_Update_FSInfo_Free_Clu(UINT32 PlusOrMinus)
+ 282          {
+ 283           UINT32 Free_Clu=0;
+ 284           FAT32_ReadSector(1+pArg->BPB_Sector_No,FAT32_Buffer);
+ 285          
+ 286           Free_Clu=(FAT32_Get_Remain_Cap())/(pArg->SectorsPerClust*pArg->BytesPerSector);
+ 287          
+ 288           if(PlusOrMinus) Free_Clu++;
+ 289           else Free_Clu--;
+ 290          
+ 291           ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[0]=((uchar *)&Free_Clu)[3]; 
+ 292           ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[1]=((uchar *)&Free_Clu)[2];
+ 293           ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[2]=((uchar *)&Free_Clu)[1];
+ 294           ((struct FSInfo *)FAT32_Buffer)->Free_Cluster[3]=((uchar *)&Free_Clu)[0];
+ 295           FAT32_WriteSector(1+pArg->BPB_Sector_No,FAT32_Buffer);   
+ 296          }*/
+ 297          
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 6   
+
+ 298          /***********************************************************************
+ 299           - ¹¦ÄÜÃèÊö£º¸üĞÂFSInfoÖĞµÄÏÂÒ»¸ö¿ÉÓÃ¿ÕÏĞ´ØµÄ´ØºÅ
+ 300           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 301           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 302           - ²ÎÊıËµÃ÷£ºLast_Clu:½«Òª¸üĞÂµ½FSInfoÖĞµÄÏÂÒ»¸ö¿ÉÓÃ¿ÕÏĞ´ØµÄ´ØºÅ    
+ 303           - ·µ»ØËµÃ÷£ºÎŞ
+ 304           - ×¢£ºFSInfoÖĞµÄÏÂÒ»¸ö¿ÉÓÃ¿ÕÏĞ´ØºÅ¿ÉÒÔ¸øÎÄ¼şÏµÍ³Ò»¸ö²Î¿¼£¬Ö±½Ó¸æËßÎÄ¼şÏµÍ³
+ 305                 ÏÂÒ»¸ö¿ÉÓÃµÄ¿ÕÏĞ´ØÔÚÊ²Ã´µØ·½
+ 306           ***********************************************************************/
+ 307          
+ 308          /*void FAT32_Update_FSInfo_Last_Clu(UINT32 Last_Clu)
+ 309          {
+ 310           FAT32_ReadSector(1+pArg->BPB_Sector_No,FAT32_Buffer);  
+ 311           ((struct FSInfo *)FAT32_Buffer)->Last_Cluster[0]=((uchar *)&Last_Clu)[3]; 
+ 312           ((struct FSInfo *)FAT32_Buffer)->Last_Cluster[1]=((uchar *)&Last_Clu)[2];
+ 313           ((struct FSInfo *)FAT32_Buffer)->Last_Cluster[2]=((uchar *)&Last_Clu)[1];
+ 314           ((struct FSInfo *)FAT32_Buffer)->Last_Cluster[3]=((uchar *)&Last_Clu)[0];
+ 315           FAT32_WriteSector(1+pArg->BPB_Sector_No,FAT32_Buffer);
+ 316          }*/
+ 317          
+ 318          /***********************************************************************
+ 319           - ¹¦ÄÜÃèÊö£º»ñµÃÏÂÒ»¸ö´ØµÄ´ØºÅ
+ 320           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 321           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 322           - ²ÎÊıËµÃ÷£ºLastCluster:»ù×¼´ØºÅ  
+ 323           - ·µ»ØËµÃ÷£ºLastClutsterµÄÏÂÒ»´ØµÄ´ØºÅ
+ 324           - ×¢£º»ñµÃÏÂÒ»´ØµÄ´ØºÅ£¬¾ÍÊÇÆ¾½èFAT±íÖĞËù¼ÇÂ¼µÄ´ØÁ´¹ØÏµÀ´ÊµÏÖµÄ
+ 325           ***********************************************************************/
+ 326          
+ 327          UINT32 FAT32_GetNextCluster(UINT32 LastCluster)
+ 328          {
+ 329   1       UINT32 temp;
+ 330   1       struct FAT32_FAT *pFAT;
+ 331   1       struct FAT32_FAT_Item *pFAT_Item;
+ 332   1       temp=((LastCluster/128)+pArg->FirstFATSector);
+ 333   1       FAT32_ReadSector(temp,FAT32_Buffer);
+ 334   1       pFAT=(struct FAT32_FAT *)FAT32_Buffer;
+ 335   1       pFAT_Item=&((pFAT->Items)[LastCluster%128]);
+ 336   1       return LE2BE((UINT8 *)pFAT_Item,4);
+ 337   1      }
+ 338          
+ 339          /***********************************************************************
+ 340           - ¹¦ÄÜÃèÊö£º±È½ÏÄ¿Â¼Ãû
+ 341           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 342           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 343           - ²ÎÊıËµÃ÷£ºa:Ö¸ÏòÄ¿Â¼Ãû1µÄÖ¸Õë
+ 344                       b:Ö¸ÏòÄ¿Â¼Ãû2µÄÖ¸Õë
+ 345           - ·µ»ØËµÃ÷£ºÈç¹ûÁ½¸öÄ¿Â¼ÃûÏàÍ¬¾Í·µ»Ø1£¬·ñÔòÎª0
+ 346           ***********************************************************************/
+ 347          
+ 348          UINT8 Compare_Dir_Name(INT8 *a,INT8 *b)
+ 349          {
+ 350   1       UINT8 i;
+ 351   1       for(i=0;i<8;i++)
+ 352   1       {
+ 353   2        if(a[i]!=b[i]) return 0;
+ 354   2       }
+ 355   1       return 1;
+ 356   1      }
+ 357          
+ 358          /***********************************************************************
+ 359           - ¹¦ÄÜÃèÊö£ºÎÄ¼şÃûÆ¥Åä(Ö§³Ö´ø*?Í¨Åä·ûµÄÎÄ¼şÃûµÄÆ¥Åä)
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 7   
+
+ 360           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 361           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 362           - ²ÎÊıËµÃ÷£ºpat:Ô´ÎÄ¼şÃû£¬¿ÉÒÔº¬*»ò?Í¨Åä·û Èç *.txt »ò A?.mp3µÈµÈ
+ 363                       name:Ä¿±êÎÄ¼şÃû
+ 364           - ·µ»ØËµÃ÷£ºÈç¹ûÁ½¸öÎÄ¼şÃûÆ¥Åä¾Í·µ»Ø1£¬·ñÔòÎª0
+ 365           - ×¢£º¹ØÓÚÍ¨ÅäÎÄ¼şÃûÆ¥Åä£¬ÓĞÕâÑùµÄÀı×Ó£¬±ÈÈç A*.txt Óë ABC.txtÊÇÆ¥ÅäµÄ
+ 366             Í¬Ê±Óë ABCDE.txtÒ²ÊÇÆ¥ÅäµÄ¡£´Ë¹¦ÄÜÔÚÎÄ¼şÃ¶¾ÙÖĞ½«»áÓÃµ½£¬ÓÃÀ´Æ¥Åä
+ 367             ÎÄ¼şÃû·ûºÏÒ»¶¨Ìõ¼şµÄÎÄ¼ş
+ 368           ***********************************************************************/
+ 369          
+ 370          UINT8 FilenameMatch(INT8 *pat,INT8 *name)
+ 371          {
+ 372   1       INT16 match,ndone;
+ 373   1       INT8 *cpp,*cpn;
+ 374   1       cpp=pat;
+ 375   1       cpn=name;
+ 376   1       match=1;
+ 377   1       ndone=1;
+ 378   1       while(ndone)
+ 379   1       {
+ 380   2        switch (*cpp)
+ 381   2        {
+ 382   3         case '*':
+ 383   3                  cpp++;
+ 384   3                  cpn=strchr(cpn,*cpp);
+ 385   3                  if(cpn==NULL)
+ 386   3                  {
+ 387   4                   cpn=name;
+ 388   4                   while(*cpn) cpn++;
+ 389   4                  }
+ 390   3                  break;
+ 391   3         case '?':
+ 392   3                  cpp++;
+ 393   3                  cpn++;
+ 394   3                  break;
+ 395   3         case 0:
+ 396   3                  if(*cpn!=0)
+ 397   3                  match=0;
+ 398   3                  ndone=0;
+ 399   3                  break;
+ 400   3         default:
+ 401   3                  if((*cpp)==(*cpn))
+ 402   3                  {
+ 403   4                   cpp++;
+ 404   4                   cpn++;
+ 405   4                  }
+ 406   3                  else
+ 407   3                  {
+ 408   4                   match=0;
+ 409   4                   ndone=0;
+ 410   4                  }
+ 411   3                  break;
+ 412   3        }
+ 413   2       }
+ 414   1       return(match);
+ 415   1      }
+ 416          
+ 417          /***********************************************************************
+ 418           - ¹¦ÄÜÃèÊö£ºFAT32µÄÎÄ¼şÄ¿Â¼ÏîµÄÎÄ¼şÃû×Ö¶Î(8¸ö×Ö½Ú)£¬×ªÎªÆÕÍ¨µÄÎÄ¼şÃû
+ 419                       Èç£ºABC     MP3 ½«×ªÎª ABC.MP3
+ 420           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 421           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 8   
+
+ 422           - ²ÎÊıËµÃ÷£ºdName£ºÖ¸ÏòÎÄ¼şÄ¿Â¼ÏîµÄÎÄ¼şÃû×Ö¶ÎµÄÖ¸Õë
+ 423                       pName£ºÖ¸Ïò×ª»»Íê³ÉºóµÄÎÄ¼şÃû
+ 424           - ·µ»ØËµÃ÷£ºÎŞ
+ 425           - ×¢£º´Ëº¯ÊıÅäºÏÉÏÃæµÄFilenameMatchº¯Êı£¬¾Í¿ÉÒÔÊµÏÖ¶ÔÎÄ¼şÃûÍ¨ÅäÆ¥Åä
+ 426           ***********************************************************************/
+ 427          
+ 428          void FAT32_toFileName(char *dName,char *pName)
+ 429          {
+ 430   1       char i=7,j=0,k=0;
+ 431   1       while(dName[i--]==' ');
+ 432   1       for(j=0;j<i+2;j++) pName[j]=L2U(dName[j]);
+ 433   1       pName[j++]='.';
+ 434   1       i=10;
+ 435   1       while(dName[i--]==' ');
+ 436   1       k=j+i-6;
+ 437   1       i=0;
+ 438   1       for(;j<k;j++) pName[j]=dName[8+(i++)];
+ 439   1       pName[j]=0; 
+ 440   1      }
+ 441          
+ 442          /***********************************************************************
+ 443           - ¹¦ÄÜÃèÊö£º½«×Ö·û´®ÖĞµÄĞ¡Ğ´×Ö·û¶¼×ªÎª´óĞ´×Ö·û
+ 444           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 445           - º¯ÊıÊôĞÔ£ºÄÚ²¿
+ 446           - ²ÎÊıËµÃ÷£ºstr£ºÖ¸Ïò´ı×ª»»µÄ×Ö·û´®
+ 447           - ·µ»ØËµÃ÷£ºÎŞ
+ 448           - ×¢£º¶ÌÎÄ¼şÃûµÄÇé¿öÏÂ£¬ÎÄ¼şÃûÖĞµÄ×Ö·ûÆäÊµ¶¼ÊÇ´óĞ´×Ö·û£¬ÎªÁË·½±ã£¬½«ÎÄ¼ş
+ 449                 Ãû¶¼×ªÎª´óĞ´
+ 450           ***********************************************************************/
+ 451          
+ 452          void Str2Up(char *str)
+ 453          {
+ 454   1       uchar len=strlen(str),i;
+ 455   1       for(i=0;i<len;i++)
+ 456   1       {
+ 457   2        str[i]=L2U(str[i]); 
+ 458   2       } 
+ 459   1      }
+ 460          
+ 461          /**************************************************************************
+ 462           - ¹¦ÄÜÃèÊö£º½øÈëÒ»¸öÄ¿Â¼
+ 463           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 464           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 465           - ²ÎÊıËµÃ÷£ºpath:Ä¿Â¼µÄÂ·¾¶ ĞÎÈç£º"\\dir1\\dir2\\" £¬×îºóÒ»¶¨ÊÇÒÔ\\½áÊø 
+ 466           - ·µ»ØËµÃ÷£º·µ»ØÄ¿Â¼µÄ¿ªÊ¼´ØºÅ£¬Èç¹û½øÈëÄ¿Â¼Ê§°Ü£¬±ÈÈçÄ¿Â¼²»´æÔÚ£¬Ôò·µ»Ø0
+ 467           - ×¢£º´Ëº¯ÊıÓÉºóÃæµÄFAT32_Open_FileµÈº¯Êıµ÷ÓÃ£¬ÓÃÀ´ÊµÏÖ´ò¿ªÈÎÒâÄ¿Â¼ÏÂµÄÎÄ¼ş
+ 468                 ²»½¨ÒéÓÃ»§µ÷ÓÃ
+ 469           **************************************************************************/
+ 470          
+ 471          UINT32 FAT32_Enter_Dir(INT8 *path)
+ 472          {
+ 473   1       UINT32 Cur_Clust,sec_temp,iSec,iDir,Old_Clust;
+ 474   1       UINT8 i=1,counter=0,flag=0;
+ 475   1       struct direntry *pDir;
+ 476   1       INT8 name[20];
+ 477   1      
+ 478   1       Cur_Clust=pArg->FirstDirClust;
+ 479   1       if(path[1]==0 && path[0]=='\\') return Cur_Clust;
+ 480   1       else
+ 481   1       {
+ 482   2        while(path[i]!=0)
+ 483   2        {
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 9   
+
+ 484   3         if(path[i]=='\\')
+ 485   3         {
+ 486   4          for(;counter<8;counter++)
+ 487   4              {
+ 488   5               name[counter]=' ';
+ 489   5              }
+ 490   4              name[counter]=0;
+ 491   4              counter=0;
+ 492   4              
+ 493   4              do
+ 494   4              {
+ 495   5               sec_temp=(SOC(Cur_Clust));
+ 496   5               for(iSec=sec_temp;iSec<sec_temp+pArg->SectorsPerClust;iSec++)
+ 497   5               {
+ 498   6                FAT32_ReadSector(iSec,FAT32_Buffer);
+ 499   6                for(iDir=0;iDir<pArg->BytesPerSector;iDir+=sizeof(struct direntry))
+ 500   6            {
+ 501   7             pDir=((struct direntry *)(FAT32_Buffer+iDir));
+ 502   7                 if(Compare_Dir_Name(pDir->deName,name))
+ 503   7                 {
+ 504   8                  flag=1;
+ 505   8                      Cur_Clust=LE2BE(pDir->deLowCluster,2)+LE2BE(pDir->deHighClust,2)*65536;
+ 506   8                      iDir=pArg->BytesPerSector;
+ 507   8                      iSec=sec_temp+pArg->SectorsPerClust;
+ 508   8                 } 
+ 509   7                }
+ 510   6               }
+ 511   5               Old_Clust=Cur_Clust;
+ 512   5              }while(!flag && (Cur_Clust=FAT32_GetNextCluster(Cur_Clust))!=0x0fffffff);
+ 513   4              if(!flag) 
+ 514   4              {
+ 515   5               temp_dir_cluster=Old_Clust;
+ 516   5               strcpy(temp_dir_name,name);
+ 517   5               flag=0;
+ 518   5               return 0;
+ 519   5              }
+ 520   4              flag=0; 
+ 521   4         }
+ 522   3         else
+ 523   3         {
+ 524   4          name[counter++]=(L2U(path[i]));
+ 525   4         }
+ 526   3         i++;
+ 527   3        }
+ 528   2       }
+ 529   1       name[counter]=0; 
+ 530   1       flag=1;
+ 531   1       temp_dir_cluster=Cur_Clust;
+ 532   1       strcpy(temp_dir_name,name);
+ 533   1       return Cur_Clust;
+ 534   1      }
+ 535          
+ 536          /**************************************************************************
+ 537           - ¹¦ÄÜÃèÊö£º´ò¿ªÒ»¸öÎÄ¼ş(Ö§³ÖÎÄ¼şÃûÍ¨Åä£¬Èç A*.txt »ò *.*)
+ 538           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 539           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 540           - ²ÎÊıËµÃ÷£ºpfi: FileInfoStructÀàĞÍµÄ½á¹¹ÌåÖ¸Õë£¬ÓÃÀ´×°ÔØÎÄ¼şµÄ²ÎÊıĞÅÏ¢
+ 541                        ±ÈÈçÎÄ¼şµÄ´óĞ¡¡¢ÎÄ¼şµÄÃû³Æ¡¢ÎÄ¼şµÄ¿ªÊ¼´ØµÈµÈ£¬ÒÔ±¸ºóÃæÊ¹ÓÃ
+ 542                       filepath: ÎÄ¼şµÄÂ·¾¶£¬Ö§³ÖÈÎÒâ²ãÄ¿Â¼ ±ÈÈç
+ 543                        "\\dir1\\dir2\\dir3\\....\\test.txt"
+ 544                                   item£ºÔÚÎÄ¼şÃûÖĞÓĞÍ¨Åä·û*»ò?µÄÇé¿öÏÂ£¬ÊµÏÖÓëÖ®Æ¥ÅäµÄÎÄ¼ş²¢·Ç
+ 545                                   Ò»¸ö£¬item¾ÍÊÇ´ò¿ªµÄÎÄ¼şµÄÏîÊı£¬±ÈÈç·ûºÏÍ¨ÅäÌõ¼şµÄÎÄ¼şÓĞ6¸ö£¬
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 10  
+
+ 546                                   Èç¹ûitem=3£¬ÄÇÃ´´Ëº¯Êı¾Í»á´ò¿ªÕâ6¸öÎÄ¼şÖĞ°´Ë³ĞòÅÅºÅÎª3µÄÄÇ¸ö
+ 547                                   ÎÄ¼ş(item±àºÅ´Ó0¿ªÊ¼)
+ 548           - ·µ»ØËµÃ÷£º0£º³É¹¦ 1£ºÎÄ¼ş²»´æÔÚ 2£ºÄ¿Â¼²»´æÔÚ
+ 549           - ×¢£º´ò¿ªÎÄ¼ş²»³É¹¦ÓĞºÜ¶àÔ­Òò£¬±ÈÈçÎÄ¼ş²»´æÔÚ¡¢ÎÄ¼şµÄÄ³Ò»¼¶Ä¿Â¼²»´æÔÚ
+ 550                 Í¨ÅäÇé¿öÏÂÂú×ãÌõ¼şµÄÎÄ¼şÏîÊıĞ¡ÓÚitemµÄÖµµÈµÈ
+ 551                     Í¨³£Çé¿öÏÂ£¬ÎÄ¼şÃûÖĞÃ»ÓĞÍ¨Åä·û£¬itemµÄÖµÎÒÃÇÈ¡0¾Í¿ÉÒÔÁË
+ 552           **************************************************************************/
+ 553          
+ 554          UINT8 FAT32_Open_File(struct FileInfoStruct *pfi,INT8 *filepath,unsigned long item)
+ 555          {
+ 556   1       UINT32 Cur_Clust,sec_temp,iSec,iFile,iItem=0;
+ 557   1       UINT8 flag=0,index=0,i=0;
+ 558   1       struct direntry *pFile;
+ 559   1       INT8 temp_file_name[13];
+ 560   1       while(filepath[i]!=0)
+ 561   1       {
+ 562   2        if(filepath[i]=='\\') index=i;
+ 563   2        i++;
+ 564   2       }
+ 565   1      
+ 566   1       if(Cur_Clust=FAT32_Enter_Dir(filepath))
+ 567   1       {
+ 568   2        Str2Up(temp_dir_name);
+ 569   2       do
+ 570   2       { 
+ 571   3        sec_temp=SOC(Cur_Clust);
+ 572   3        for(iSec=sec_temp;iSec<sec_temp+pArg->SectorsPerClust;iSec++)
+ 573   3        {     
+ 574   4         FAT32_ReadSector(iSec,FAT32_Buffer);
+ 575   4         for(iFile=0;iFile<pArg->BytesPerSector;iFile+=sizeof(struct direntry))
+ 576   4         {
+ 577   5          pFile=((struct direntry *)(FAT32_Buffer+iFile));
+ 578   5              FAT32_toFileName(pFile->deName,temp_file_name);
+ 579   5              if(FilenameMatch(temp_dir_name,temp_file_name) && pFile->deName[0]!=0xe5 && pFile->deAttributes&0x20) //Æ
+             -¥ÅäÎÄ¼şÃû
+ 580   5              {
+ 581   6               if(item==iItem)
+ 582   6               {       
+ 583   7               flag=1;
+ 584   7           Cur_Clust=LE2BE(pFile->deLowCluster,2)+LE2BE(pFile->deHighClust,2)*65536;
+ 585   7      
+ 586   7           pfi->FileSize=LE2BE(pFile->deFileSize,4);
+ 587   7               strcpy(pfi->FileName,temp_file_name);
+ 588   7               pfi->FileStartCluster=LE2BE(pFile->deLowCluster,2)+LE2BE(pFile->deHighClust,2)*65536;
+ 589   7               pfi->FileCurCluster=pfi->FileStartCluster;
+ 590   7               pfi->FileCurSector=SOC(pfi->FileStartCluster);
+ 591   7               pfi->FileCurPos=0;
+ 592   7               pfi->FileCurOffset=0;
+ 593   7               pfi->Rec_Sec=iSec;
+ 594   7               pfi->nRec=iFile;
+ 595   7      
+ 596   7               pfi->FileAttr=pFile->deAttributes;
+ 597   7               sec_temp=LE2BE(pFile->deCTime,2);
+ 598   7               (pfi->FileCreateTime).sec=(sec_temp&0x001f)*2;
+ 599   7               (pfi->FileCreateTime).min=((sec_temp>>5)&0x003f);
+ 600   7               (pfi->FileCreateTime).hour=((sec_temp>>11)&0x001f);
+ 601   7               sec_temp=LE2BE(pFile->deCDate,2);
+ 602   7               (pfi->FileCreateDate).day=((sec_temp)&0x001f);
+ 603   7               (pfi->FileCreateDate).month=((sec_temp>>5)&0x000f);
+ 604   7               (pfi->FileCreateDate).year=((sec_temp>>9)&0x007f)+1980;
+ 605   7      
+ 606   7               sec_temp=LE2BE(pFile->deMTime,2);
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 11  
+
+ 607   7               (pfi->FileMTime).sec=(sec_temp&0x001f)*2;
+ 608   7               (pfi->FileMTime).min=((sec_temp>>5)&0x003f);
+ 609   7               (pfi->FileMTime).hour=((sec_temp>>11)&0x001f);
+ 610   7               sec_temp=LE2BE(pFile->deMDate,2);
+ 611   7               (pfi->FileMDate).day=((sec_temp)&0x001f);
+ 612   7               (pfi->FileMDate).month=((sec_temp>>5)&0x000f);
+ 613   7               (pfi->FileMDate).year=((sec_temp>>9)&0x007f)+1980;
+ 614   7      
+ 615   7               sec_temp=LE2BE(pFile->deADate,2);
+ 616   7               (pfi->FileADate).day=((sec_temp)&0x001f);
+ 617   7               (pfi->FileADate).month=((sec_temp>>5)&0x000f);
+ 618   7               (pfi->FileADate).year=((sec_temp>>9)&0x007f)+1980;
+ 619   7                  
+ 620   7               iFile=pArg->BytesPerSector;
+ 621   7               iSec=sec_temp+pArg->SectorsPerClust;
+ 622   7               }
+ 623   6               else
+ 624   6               {
+ 625   7                iItem++;
+ 626   7               }
+ 627   6              } 
+ 628   5         }
+ 629   4        }
+ 630   3       }while(!flag && (Cur_Clust=FAT32_GetNextCluster(Cur_Clust))!=0x0fffffff);
+ 631   2       if(!flag) 
+ 632   2       {
+ 633   3        return 1;
+ 634   3       }
+ 635   2       return 0;
+ 636   2       }
+ 637   1       else
+ 638   1       {
+ 639   2        return 2; 
+ 640   2       }
+ 641   1      }
+ 642          
+ 643          /**************************************************************************
+ 644           - ¹¦ÄÜÃèÊö£ºÎÄ¼ş¶¨Î»
+ 645           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 646           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 647           - ²ÎÊıËµÃ÷£ºpfi:FileInfoStructÀàĞÍµÄ½á¹¹ÌåÖ¸Õë£¬ÓÃÓÚ×°ÔØÎÄ¼ş²ÎÊıĞÅÏ¢£¬ÎÄ¼ş
+ 648                       ¶¨Î»ºó£¬pfiËùÖ¸ÏòµÄ½á¹¹ÌåÖĞµÄÏà¹Ø²ÎÊı¾Í±»¸üĞÂÁË£¬±ÈÈçÎÄ¼şµÄµ±Ç°
+ 649                       ÉÈÇø£¬ÎÄ¼şµ±Ç°ÉÈÇøÖĞµÄÎ»ÖÃ£¬ÎÄ¼şµÄµ±Ç°Æ«ÒÆÁ¿µÈµÈ£¬ÒÔ±¸ºóÃæÊ¹ÓÃ
+ 650                       offset:Òª¶¨Î»µÄÆ«ÒÆÁ¿£¬Èç¹ûoffset´óÓÚÎÄ¼şµÄ´óĞ¡£¬Ôò¶¨Î»µ½ÎÄ¼şµÄ
+ 651                       Ä©Î²
+ 652           - ·µ»ØËµÃ÷£ºÎÄ¼ş¶¨Î»³É¹¦·µ»Ø0£¬·ñÔòÎª1
+ 653           - ×¢£º´Ëº¯Êı±»ÏÂÃæµÄFAT32_Read_Fileµ÷ÓÃ£¬ÓÃÓÚÊµÏÖ´ÓÖ¸¶¨Î»ÖÃ¶ÁÈ¡Êı¾İ£¬²»½¨Òé
+ 654                 ÓÃ»§Ö±½Óµ÷ÓÃĞ©º¯Êı
+ 655           **************************************************************************/
+ 656          
+ 657          UINT8 FAT32_Seek_File(struct FileInfoStruct *pfi,UINT32 offset)
+ 658          {
+ 659   1       UINT32 i,temp;
+ 660   1      
+ 661   1      if(offset<=pfi->FileSize)
+ 662   1      { 
+ 663   2       if(offset==pfi->FileCurOffset)
+ 664   2       {
+ 665   3        pfi->FileCurPos%=pArg->BytesPerSector;
+ 666   3        return 1;  
+ 667   3       }
+ 668   2       if(offset<pfi->FileCurOffset) 
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 12  
+
+ 669   2       {
+ 670   3        pfi->FileCurCluster=pfi->FileStartCluster;
+ 671   3        pfi->FileCurSector=SOC(pfi->FileCurCluster);
+ 672   3        pfi->FileCurPos=0;
+ 673   3        pfi->FileCurOffset=0;
+ 674   3       } 
+ 675   2       if((offset-pfi->FileCurOffset)>=(pArg->BytesPerSector-pfi->FileCurPos))         //Ä¿±êÆ«ÒÆÁ¿ÓëÎÄ¼şµ±Ç°Æ«ÒÆÁ¿Ëù²î
+             -µÄ×Ö½ÚÊı²»Ğ¡ÓÚÎÄ¼şÔÚµ±Ç°ÉÈÇøÖĞµÄÎ»ÖÃµ½ÉÈÇøÄ©Î²µÄ×Ö½ÚÊı
+ 676   2       {
+ 677   3        pfi->FileCurOffset+=(pArg->BytesPerSector-pfi->FileCurPos);
+ 678   3        pfi->FileCurPos=0;
+ 679   3        if(pfi->FileCurSector-SOC(pfi->FileCurCluster)==(pArg->SectorsPerClust-1))
+ 680   3        {
+ 681   4         pfi->FileCurCluster=FAT32_GetNextCluster(pfi->FileCurCluster);
+ 682   4         pfi->FileCurSector=SOC(pfi->FileCurCluster);
+ 683   4        }
+ 684   3        else
+ 685   3        {
+ 686   4         pfi->FileCurSector++; 
+ 687   4        }
+ 688   3       }
+ 689   2       else
+ 690   2       {
+ 691   3        pfi->FileCurPos=(pfi->FileCurPos+offset-pfi->FileCurOffset)%pArg->BytesPerSector;
+ 692   3        pfi->FileCurOffset=offset;
+ 693   3        return 1;
+ 694   3       }
+ 695   2       temp=SOC(pfi->FileCurCluster);
+ 696   2       if((offset-(pfi->FileCurOffset))/pArg->BytesPerSector+(pfi->FileCurSector-temp)>(pArg->SectorsPerClust-1)
+             -)
+ 697   2       {
+ 698   3        pfi->FileCurOffset+=(((pArg->SectorsPerClust)-(pfi->FileCurSector-(SOC(pfi->FileCurCluster))))*pArg->Byt
+             -esPerSector);
+ 699   3        pfi->FileCurCluster=FAT32_GetNextCluster(pfi->FileCurCluster);
+ 700   3        pfi->FileCurSector=SOC(pfi->FileCurCluster);
+ 701   3        pfi->FileCurPos=0;
+ 702   3       }
+ 703   2       else
+ 704   2       {
+ 705   3        pfi->FileCurSector+=(offset-pfi->FileCurOffset)/pArg->BytesPerSector;
+ 706   3        pfi->FileCurPos=(offset-pfi->FileCurOffset)%pArg->BytesPerSector;
+ 707   3        pfi->FileCurOffset=offset;
+ 708   3        return 1;
+ 709   3       }
+ 710   2      
+ 711   2       temp=(offset-pfi->FileCurOffset)/(pArg->BytesPerSector*pArg->SectorsPerClust);
+ 712   2       for(i=0;i<temp;i++)
+ 713   2       {
+ 714   3        pfi->FileCurCluster=FAT32_GetNextCluster(pfi->FileCurCluster);
+ 715   3       }
+ 716   2       pfi->FileCurOffset+=(temp*(pArg->BytesPerSector*pArg->SectorsPerClust));
+ 717   2       pfi->FileCurSector=(SOC(pfi->FileCurCluster))+(offset-pfi->FileCurOffset)/pArg->BytesPerSector;
+ 718   2       pfi->FileCurPos=((offset-pfi->FileCurOffset))%pArg->BytesPerSector;
+ 719   2       pfi->FileCurOffset=offset;
+ 720   2      }
+ 721   1      else
+ 722   1      {
+ 723   2       return 1;
+ 724   2      }
+ 725   1       return 0;
+ 726   1      }
+ 727          
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 13  
+
+ 728          /**************************************************************************
+ 729           - ¹¦ÄÜÃèÊö£º´ÓÎÄ¼şµÄÄ³Ò»¸öÎ»ÖÃ´¦£¬¶ÁÈ¡Ò»¶¨³¤¶ÈµÄÊı¾İ£¬·ÅÈëÊı¾İ»º³åÇøÖĞ
+ 730           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+ 731           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 732           - ²ÎÊıËµÃ÷£ºpfi:FileInfoStructÀàĞÍµÄ½á¹¹ÌåÖ¸Õë£¬ÓÃÓÚ×°ÔØÎÄ¼ş²ÎÊıĞÅÏ¢£¬ÎÄ¼ş
+ 733                       ¶ÁÈ¡µÄ¹ı³ÌÖĞ£¬´Ë½á¹¹ÌåÖĞµÄÏà¹Ø²ÎÊı»á¸üĞÂ£¬±ÈÈçÎÄ¼şµÄµ±Ç°Æ«ÒÆÁ¿¡¢
+ 734                       ÎÄ¼şµÄµ±Ç°ÉÈÇø£¬ÎÄ¼şµÄµ±Ç°´ØµÈµÈ
+ 735                       offset:Òª¶¨Î»µÄÆ«ÒÆÁ¿£¬ÒªĞ¡ÓÚÎÄ¼şµÄ´óĞ¡ 
+ 736                       len:Òª¶ÁÈ¡µÄÊı¾İµÄ³¤¶È£¬Èç¹ûlen+offset´óÓÚÎÄ¼şµÄ´óĞ¡£¬ÔòÊµ¼Ê¶Á
+ 737                       È¡µÄÊı¾İÁ¿ÊÇ´Óoffset¿ªÊ¼µ½ÎÄ¼ş½áÊø
+ 738                       pbuf:Êı¾İ»º³åÇø
+ 739           - ·µ»ØËµÃ÷£º¶ÁÈ¡µ½µÄÊµ¼ÊµÄÊı¾İ³¤¶È£¬Èç¹û¶ÁÈ¡Ê§°Ü£¬±ÈÈçÖ¸¶¨µÄÆ«ÒÆÁ¿´óÓÚÁËÎÄ¼ş
+ 740                       ´óĞ¡£¬Ôò·µ»Ø0
+ 741           - ×¢£ºÔÚ¶ÁÈ¡Ò»¸öÎÄ¼şµÄÊı¾İÇ°£¬±ØĞëÏÈ½«¸ÃÎÄ¼şÓÃFAT32_Open_File´ò¿ª
+ 742           **************************************************************************/
+ 743          
+ 744          UINT32 FAT32_Read_File(struct FileInfoStruct *pfi,UINT32 offset,UINT32 len,UINT8 *pbuf)
+ 745          {
+ 746   1              UINT32 i,j,k,temp;
+ 747   1              UINT32 counter=0;
+ 748   1              if(offset<pfi->FileSize)
+ 749   1              {
+ 750   2                      if(offset+len>pfi->FileSize) 
+ 751   2                              len=pfi->FileSize-offset;
+ 752   2                      FAT32_Seek_File(pfi,offset);  
+ 753   2                      FAT32_ReadSector(pfi->FileCurSector,FAT32_Buffer);
+ 754   2                      for(i=pfi->FileCurPos;i<pArg->BytesPerSector;i++)
+ 755   2                      {
+ 756   3                              if(counter>=len) 
+ 757   3                              {
+ 758   4                                      return len;
+ 759   4                              }
+ 760   3                              pbuf[counter]=FAT32_Buffer[i];
+ 761   3                              counter++;
+ 762   3                              pfi->FileCurPos++;
+ 763   3                              pfi->FileCurOffset++;
+ 764   3                      }
+ 765   2                      if(pfi->FileCurSector-(SOC(pfi->FileCurCluster))!=(pArg->SectorsPerClust-1))
+ 766   2                      {
+ 767   3                              for(j=pfi->FileCurSector+1;j<(SOC(pfi->FileCurCluster))+pArg->SectorsPerClust;j++)
+ 768   3                              {
+ 769   4                                      FAT32_ReadSector(j,FAT32_Buffer);
+ 770   4                                      pfi->FileCurSector=j;
+ 771   4                                      for(i=0;i<pArg->BytesPerSector;i++)
+ 772   4                                      {
+ 773   5                                              if(counter>=len)
+ 774   5                                              {
+ 775   6                                                      return len;
+ 776   6                                              }
+ 777   5                                              pbuf[counter]=FAT32_Buffer[i];
+ 778   5                                              counter++;
+ 779   5                                              pfi->FileCurPos++;
+ 780   5                                              pfi->FileCurOffset++;
+ 781   5                                      }
+ 782   4                              }
+ 783   3                      } 
+ 784   2        temp=(len-counter)/(pArg->BytesPerSector*pArg->SectorsPerClust);
+ 785   2        for(k=0;k<temp;k++)
+ 786   2        {
+ 787   3         pfi->FileCurCluster=FAT32_GetNextCluster(pfi->FileCurCluster);
+ 788   3         for(j=(SOC(pfi->FileCurCluster));j<(SOC(pfi->FileCurCluster))+pArg->SectorsPerClust;j++)
+ 789   3         {
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 14  
+
+ 790   4          FAT32_ReadSector(j,FAT32_Buffer);
+ 791   4          pfi->FileCurSector=j;
+ 792   4          for(i=0;i<pArg->BytesPerSector;i++)
+ 793   4          {
+ 794   5           if(counter>=len)  
+ 795   5               {
+ 796   6             return len;
+ 797   6           }
+ 798   5           pbuf[counter]=FAT32_Buffer[i];
+ 799   5           counter++;
+ 800   5           pfi->FileCurOffset++;
+ 801   5               pfi->FileCurPos++;
+ 802   5               pfi->FileCurPos%=pArg->BytesPerSector;
+ 803   5          } 
+ 804   4         }    
+ 805   3        }
+ 806   2        pfi->FileCurCluster=FAT32_GetNextCluster(pfi->FileCurCluster);
+ 807   2        temp=(SOC(pfi->FileCurCluster))+((len-counter)/pArg->BytesPerSector);
+ 808   2        pfi->FileCurSector=(SOC(pfi->FileCurCluster));
+ 809   2        for(j=(SOC(pfi->FileCurCluster));j<temp;j++)
+ 810   2        {
+ 811   3         FAT32_ReadSector(j,FAT32_Buffer);
+ 812   3         pfi->FileCurSector=j;
+ 813   3         for(i=0;i<pArg->BytesPerSector;i++)
+ 814   3         {
+ 815   4          if(counter>=len) 
+ 816   4          {
+ 817   5            return len;
+ 818   5          }
+ 819   4          pbuf[counter]=FAT32_Buffer[i];
+ 820   4          counter++;
+ 821   4          pfi->FileCurPos++;
+ 822   4          pfi->FileCurPos%=pArg->BytesPerSector;
+ 823   4          pfi->FileCurOffset++;
+ 824   4         }   
+ 825   3        }
+ 826   2                      pfi->FileCurSector=j;
+ 827   2                      FAT32_ReadSector(pfi->FileCurSector,FAT32_Buffer);
+ 828   2                      temp=len-counter;
+ 829   2                      for(i=0;i<temp;i++)
+ 830   2                      {
+ 831   3                              if(counter>=len) 
+ 832   3                              {
+ 833   4                                      return len;
+ 834   4                              }
+ 835   3                              pbuf[counter]=FAT32_Buffer[i];
+ 836   3                              counter++;
+ 837   3                              pfi->FileCurPos++;
+ 838   3                              pfi->FileCurPos%=pArg->BytesPerSector;
+ 839   3                              pfi->FileCurOffset++;  
+ 840   3                      }
+ 841   2              }
+ 842   1              else
+ 843   1              {
+ 844   2                      len=0;
+ 845   2              }
+ 846   1              return len;
+ 847   1      }
+ 848          
+ 849          /**************************************************************************
+ 850           - ¹¦ÄÜÃèÊö£ºÎÄ¼ş¹Ø±Õ
+ 851           - Á¥ÊôÄ£¿é£ºFATÎÄ¼şÏµÍ³Ä£¿é
+C51 COMPILER V9.01   FAT                                                                   07/14/2013 14:47:39 PAGE 15  
+
+ 852           - º¯ÊıÊôĞÔ£ºÍâ²¿£¬Ê¹ÓÃ»§Ê¹ÓÃ
+ 853           - ²ÎÊıËµÃ÷£ºpfi:Ö¸Ïòµ±Ç°´ò¿ªµÄÎÄ¼şµÄÎÄ¼şĞÅÏ¢½á¹¹
+ 854           - ·µ»ØËµÃ÷£º0:³É¹¦
+ 855           - ×¢£ºÎŞ
+ 856           **************************************************************************/
+ 857          
+ 858          /*UINT8 FAT32_File_Close(struct FileInfoStruct *pfi)
+ 859          {
+ 860           UINT16 i=0;                                                    
+ 861           for(i=0;i<sizeof(struct FileInfoStruct);i++)
+ 862           {
+ 863            ((UINT8 *)pfi)[i]=0;
+ 864           }
+ 865           return 0;
+ 866          }*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =  10682    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    539     211
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =     32    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

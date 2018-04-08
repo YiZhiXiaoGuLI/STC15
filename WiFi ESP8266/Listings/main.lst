@@ -1,0 +1,215 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              07/26/2017 22:18:44 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files (x86)\Keil_C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND 
+                    -PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>                       //°üº¬Í·ÎÄ¼þ
+   2          #define uint unsigned int
+   3          #define uchar unsigned char
+   4          #define RELOAD_COUNT 0xFA         //ºê¶¨Òå²¨ÌØÂÊ·¢ÉúÆ÷µÄÔØÈëÖµ
+   5          //define RELOAD_COUNT (256-(((11520000/16)/12)/9600)) Ò²¿ÉÒÔ»ò²¨ÌØÂÊ9600 //256-¾§ÕñÆµÂÊ/²¨ÌØÂÊx16=BRT
+   6          /*****************LEDµÆ¶ÔÓ¦P0¿ÚµÄ1¸ö¶Ë¿Ú*************/
+   7          sbit LED0=P3^2;
+   8          /************²¨ÌØÂÊ·¢ÉúÆ÷Ïà¹Ø¹¦ÄÜ¼Ä´æÆ÷µÄ¶¨Òå****************/
+   9          sfr AUXR=0x8E;
+  10          sfr BRT=0x9C;
+  11          sfr AUXR1=0xA2;
+  12          /*****************Ïà¹Ø±äÁ¿**************/
+  13          uchar Receive,i;                             
+  14          uint n;
+  15          uchar Recive_table[15];        //ÓÃÓÚ½ÓÊÕwifiÄ£¿é·´À¡µ½MCUÉÏµÄÊý¾Ý
+  16          /*******************************************************************
+  17          Ãû³Æ£ºÑÓÊ±º¯Êý
+  18          ×÷ÓÃ£ººÁÃë¼¶ÑÓÊ±£¬Î¢Ãî¼¶ÑÓÊ±º¯Êý£¬ÎªÊý¾ÝÊÕ·¢Íê³É×÷µÈ´ý.......
+  19          ********************************************************************/
+  20          void ms_delay(uint t)
+  21          {
+  22   1            uint i,j;
+  23   1            for(i=t;i>0;i--)
+  24   1             for(j=110;j>0;j--);
+  25   1      }
+  26          
+  27          void us_delay(uchar t)
+  28          {
+  29   1            while(t--);
+  30   1      }
+  31          
+  32          
+  33          
+  34          
+  35          
+  36          
+  37          
+  38          /********************************************************************
+  39          Ãû³Æ£º²¨ÌØÂÊ·¢ÉúÆ÷º¯Êý
+  40          ×÷ÓÃ£º²¨ÌØÂÊ·¢ÉúÆ÷¿ÉÒÔÊÇT1¶¨Ê±Æ÷ÊµÏÖ£¬Ò²¿ÉÒÔÊÇMCUÄÚ²¿¶ÀÁ¢µÄ²¨ÌØÂÊ·¢ÉúÆ÷£¬
+  41          ¸÷×Ô²»Í¬µÄÔØÈëÖµ¼ÆËãÊ½£¬¾ßÌå¸ù¾Ý¼Ä´æÆ÷Ïà¹ØÉèÖÃÀ´²Î¿¼¼ÆËã£¬ÒÔÊµÏÖ
+  42          Òì²½´®ÐÐÍ¨Ñ¶¡££¨¾­²âÊÔ£¬Á½ÖÖÉèÖÃ·½Ê½¾ù¿ÉÓÃ£¬¿ÉÈÎÑ¡Ò»ÖÖ¡££©
+  43          ********************************************************************/
+  44          void Uart_Init()//Ê¹ÓÃ¶¨Ê±Æ÷1×÷Îª²¨ÌØÂÊ·¢ÉúÆ÷£¨STC89C52¡¢STC89C51¡¢AT89C51»òÕßSTC12C560S2µÈ¾ù¿É£©
+  45          {
+  46   1            SCON=0x50;     //ÉèÖÃÎª´®ÐÐ¿ÚÒÔ·½Ê½1¹¤×÷£¬8Î»Òì²½Í¨Ñ¶,ÔÊÐí½ÓÊÕÖÐ¶Ï¡£
+  47   1            //Ò»Ö¡ÐÅÏ¢Îª10Î»£¬1Î»ÆðÊ¼Î»£¬8Î»Êý¾ÝÎ»£¨µÍÎ»ÔÚÏÈ£©£¬1Î»Í£Ö¹Î»¡£
+  48   1            PCON=0x80;     //SMOD²¨ÌØÂÊÑ¡ÔñÎ»Îª1£¬SMOD=1.
+  49   1            TMOD=0x21;     //ÉèÖÃ¶¨Ê±Æ÷1Îª²¨ÌØÂÊ·¢ÉúÆ÷£¬¹¤×÷ÔÚÄ£Ê½2£¬8Î»×Ô¶¯×°ÔØ
+  50   1            TH1=RELOAD_COUNT;//²¨ÌØÂÊ9600 £¬TH1=256-FOSC/16/12/²¨ÌØÂÊ
+  51   1            TL1=TH1;
+  52   1            EA=1;                            //×ÜÖÐ¶Ï´ò¿ª
+  53   1            ES=0;                             //¹Ø±Õ´®¿ÚÖÐ¶Ï
+  54   1            TR1=1;                     //Æô¶¯¶¨Ê±Æ÷1
+C51 COMPILER V9.56.0.0   MAIN                                                              07/26/2017 22:18:44 PAGE 2   
+
+  55   1      }
+  56          /*
+  57          void Uart_Init()//Ê¹ÓÃ¶ÀÁ¢µÄ²¨ÌØÂÊ·¢ÉúÆ÷£¨STC12C560S2»ò´øÓÐ¶ÀÁ¢²¨ÌØÂÊ·¢ÉúÆ÷//¡¢//µÄµ¥Æ¬»ú¾ù¿É£©
+  58          {
+  59                SCON=0x50;     //ÉèÖÃÎª´®ÐÐ¿ÚÒÔ·½Ê½1¹¤×÷£¬8Î»Òì²½Í¨Ñ¶,ÔÊÐí½ÓÊÕÖÐ¶Ï¡£
+  60                PCON=0x80;     //SMOD²¨ÌØÂÊÑ¡ÔñÎ»Îª1£¬SMOD=1.
+  61                BRT=RELOAD_COUNT;//²¨ÌØÂÊ9600 256-¾§ÕñÆµÂÊ/²¨ÌØÂÊx16=BRT
+  62                AUXR=0xD5;     //T0¡¢T1²»12·ÖÆµ£¬ËÙ¶ÈÊÇ89C51µÄ12±¶£¬Æô¶¯¶ÀÁ¢²¨ÌØÂÊ//·¢ÉúÆ÷£¬Ã¿¸öÊ±ÖÓ¼ÆÊýÒ»´Î
+  63          //ÉèÖÃ´®¿Ú1µÄ²¨ÌØÂÊ·¢ÉúÆ÷Îª¶ÀÁ¢²¨ÌØÂÊ·¢ÉúÆ÷,
+  64                AUXR1=0x80;    //ÇÐ»»µ½P1¿Ú
+  65                ES=1;         //¿ªÆô´®¿ÚÖÐ¶Ï
+  66                EA=1;         //¿ªÆô×ÜÖÐ¶Ï
+  67          }
+  68          */
+  69          
+  70          
+  71          
+  72          
+  73          
+  74          
+  75          
+  76          
+  77          /********************************************************************
+  78          Ãû³Æ£º´®¿Ú·¢ËÍº¯Êý
+  79          ¹¦ÄÜ£ºMCUÏòÆäËûÓëÆäÁ¬½ÓµÄÉè±¸·¢ËÍÊý¾Ý£¨´Ë´¦ÊÇÎÞÏßWIFIÄ£¿éESP8266)
+  80          ********************************************************************/
+  81          void Send_Uart(uchar value)
+  82          {
+  83   1            ES=0;         //¹Ø±Õ´®¿ÚÖÐ¶Ï
+  84   1            TI=0;         //Çå·¢ËÍÍê±ÏÖÐ¶ÏÇëÇó±êÖ¾Î»
+  85   1            SBUF=value;     //·¢ËÍ
+  86   1            while(TI==0);   //µÈ´ý·¢ËÍÍê±Ï
+  87   1            TI=0;         //Çå·¢ËÍÍê±ÏÖÐ¶ÏÇëÇó±êÖ¾Î»
+  88   1            ES=1;         //ÔÊÐí´®¿ÚÖÐ¶Ï
+  89   1      }
+  90          /********************************************************************
+  91          Ãû³Æ£ºWIFIÄ£¿éÉèÖÃº¯Êý
+  92          ×÷ÓÃ: Æô¶¯Ä£¿é£¬ÒÔ±ã¿ÉÒÔÊµÏÖÎÞÏß½ÓÈëºÍ¿ØÖÆ
+  93          ********************************************************************/
+  94          void ESP8266_Set(uchar *puf) // Êý×éÖ¸Õë*pufÖ¸Ïò×Ö·û´®Êý×é               
+  95          {
+  96   1      
+  97   1            while(*puf!='\0')    //Óöµ½¿Õ¸ñÌø³öÑ­»·
+  98   1            {
+  99   2                 Send_Uart(*puf);  //ÏòWIFIÄ£¿é·¢ËÍ¿ØÖÆÖ¸Áî¡£
+ 100   2                 us_delay(5);
+ 101   2                 puf++;      
+ 102   2            }
+ 103   1            us_delay(5);
+ 104   1            Send_Uart('\r');//»Ø³µ
+ 105   1            us_delay(5);
+ 106   1            Send_Uart('\n');   //»»ÐÐ
+ 107   1            ms_delay(1000);
+ 108   1      }   
+ 109          /****************************************************
+ 110          Ãû³Æ£ºESP8266·¢ËÍÊý¾Ýº¯Êý
+ 111          ¹¦ÄÜ£ºÓÃÓÚÓëwifiÄ£¿éÏàÁ¬µÄÖÕ¶Ë·¢ËÍÊý¾Ý
+ 112          *****************************************************/
+ 113          void ESP8266_Sent(uchar *puf)      // Êý×éÖ¸Õë*pufÖ¸Ïò×Ö·û´®Êý×é               
+ 114          {
+ 115   1            ESP8266_Set("AT+CIPSEND=0,4");
+ 116   1            while(*puf!='\0')    //Óöµ½¿Õ¸ñÌø³öÑ­»·
+C51 COMPILER V9.56.0.0   MAIN                                                              07/26/2017 22:18:44 PAGE 3   
+
+ 117   1            {
+ 118   2                 Send_Uart(*puf);   //ÏòWIFIÄ£¿é·¢ËÍ¿ØÖÆÖ¸Áî¡£
+ 119   2                 us_delay(5);
+ 120   2                 puf++;      
+ 121   2            }
+ 122   1            us_delay(5);
+ 123   1            Send_Uart('\n');   //»»ÐÐ
+ 124   1            ms_delay(10);
+ 125   1      }   
+ 126          
+ 127          /********************************************************************
+ 128          Ãû³Æ£ºÖ÷º¯Êý
+ 129          ×÷ÓÃ£º³ÌÐòµÄÖ´ÐÐÈë¿Ú
+ 130          ********************************************************************/
+ 131          void main()
+ 132          {
+ 133   1            LED0=0;//¹Ø±ÕLEDµÆ
+ 134   1            Uart_Init();//Ê¹ÓÃ¶ÀÁ¢µÄ²¨ÌØÂÊ·¢ÉúÆ÷
+ 135   1      ESP8266_Set("AT+CWMODE=2"); //ÉèÖÃÂ·ÓÉÆ÷Ä£Ê½ 1 stationÄ£Ê½ 2 AP
+ 136   1      //µã Â·ÓÉÆ÷Ä£Ê½ 3 station+AP»ìºÏÄ£Ê½
+ 137   1            ESP8266_Set("AT+RST");     //ÖØÐÂÆô¶¯wifiÄ£¿é
+ 138   1                ESP8266_Set("AT+CWSAP=\"WIFI\",\"1234567890\",11,4");
+ 139   1      //ÉèÖÃÄ£¿éSSID:WIFI, PWD:ÃÜÂë ¼°°²È«ÀàÐÍ¼ÓÃÜÄ£Ê½£¨WPA2-PSK£©
+ 140   1      ESP8266_Set("AT+CIPMUX=1");//¿ªÆô¶àÁ¬½ÓÄ£Ê½£¬ÔÊÐí¶à¸ö¸÷¿Í»§¶Ë½ÓÈë
+ 141   1      ESP8266_Set("AT+CIPSERVER=1,5000");  //Æô¶¯TCP/IP ¶Ë¿ÚÎª8080 ÊµÏÖ»ùÓÚÍøÂç//¿ØÖÆ
+ 142   1            ES=1;                                                           //ÔÊÐí´®¿ÚÖÐ¶Ï
+ 143   1            while(1)
+ 144   1            {         
+ 145   2      if((Recive_table[0]=='+')&&(Recive_table[1]=='I')&&(Recive_table[2]=='P'))//MCU½ÓÊÕµ½µÄÊý¾ÝÎª+IPDÊ±½øÈëÅÐ¶
+             -Ï¿ØÖÆ0\1À´Ê¹Ð¡µÆÁÁÓëÃð
+ 146   2                  {
+ 147   3                      if((Recive_table[3]=='D')&&(Recive_table[6]==','))
+ 148   3                           {   
+ 149   4                            if(Recive_table[9]=='0')
+ 150   4                                  {
+ 151   5                                        LED0=0;//0 µÆÃð               
+ 152   5      ESP8266_Sent("µÆÃð");
+ 153   5      //wifiÄ£¿éÏòpc¶Ë»òÊÖ»ú¶Ë ·¢ËÍ"µÆÃð
+ 154   5      }
+ 155   4      
+ 156   4                                 else if (Recive_table[9]=='1')
+ 157   4                                  {                                
+ 158   5                                        LED0=1;    //1 µÆÁÁ
+ 159   5                                       ESP8266_Sent("µÆÁÁ");     
+ 160   5      //wifiÄ£¿éÏòpc¶Ë»òÊÖ»ú¶Ë ·¢ËÍ"µÆÁÁ"            
+ 161   5                       }
+ 162   4                 }   
+ 163   3              }      
+ 164   2      }         
+ 165   1      }
+ 166          
+ 167          /*********************************************************************
+ 168          Ãû³Æ£º´®ÐÐÍ¨Ñ¶ÖÐ¶Ï
+ 169          ×÷ÓÃ£º·¢ËÍ»ò½ÓÊÕ½áÊøºó½øÈë¸Ãº¯Êý£¬¶ÔÏàÓ¦µÄ±êÖ¾Î»Èí¼þÇå0£¬ÊµÏÖÄ£¿é¶ÔÊý
+ 170                   ¾ÝÕý³£µÄÊÕ·¢¡£
+ 171          ********************************************************************/
+ 172          void Uart_Interrupt() interrupt 4        
+ 173          {
+ 174   1        static uchar i=0;
+ 175   1            if(RI==1)
+ 176   1            {
+ 177   2                 RI=0;
+C51 COMPILER V9.56.0.0   MAIN                                                              07/26/2017 22:18:44 PAGE 4   
+
+ 178   2                 Receive=SBUF;        //MCU½ÓÊÕwifiÄ£¿é·´À¡»ØÀ´µÄÊý¾Ý
+ 179   2                 Recive_table[i]=Receive;     
+ 180   2                 i++;         
+ 181   2                 if((Recive_table[i-1]=='\n'))i=0;  //Óöµ½»»ÐÐ ÖØÐÂ×°Öµ
+ 182   2      }
+ 183   1            else TI=0;        
+ 184   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    330    ----
+   CONSTANT SIZE    =    110    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     20       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

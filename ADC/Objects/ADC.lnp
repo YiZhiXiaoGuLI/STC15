@@ -1,0 +1,7 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\1602.obj",
+".\Objects\12864.obj",
+".\Objects\EEPROM.obj" 
+TO ".\Objects\ADC" 
+PRINT(".\Listings\ADC.m51") RAMSIZE(256) 

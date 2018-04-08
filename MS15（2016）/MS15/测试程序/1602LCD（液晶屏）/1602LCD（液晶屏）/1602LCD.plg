@@ -1,0 +1,21 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+D:\百度云同步盘\keil\MS28\1602LCD\1602LCD.uvproj
+Project File Date:  07/15/2013
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling 1602LCD.c...
+linking...
+Program Size: data=9.1 xdata=0 code=228
+creating hex file from "1602LCD"...
+"1602LCD" - 0 Error(s), 0 Warning(s).
+Build target 'Target 1'
+compiling 1602LCD.c...
+linking...
+Program Size: data=9.1 xdata=0 code=228
+creating hex file from "1602LCD"...
+"1602LCD" - 0 Error(s), 0 Warning(s).

@@ -1,0 +1,4 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj" 
+TO ".\Objects\ESP8266" 
+PRINT(".\Listings\ESP8266.m51") RAMSIZE(256) 

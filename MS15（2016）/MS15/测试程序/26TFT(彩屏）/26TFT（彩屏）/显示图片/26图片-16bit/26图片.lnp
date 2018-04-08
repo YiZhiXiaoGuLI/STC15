@@ -1,0 +1,5 @@
+"STARTUP.obj",
+"main.obj",
+"LCD_driver.obj" 
+TO "26ͼƬ" 
+RAMSIZE(256) 

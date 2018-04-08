@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"H156.obj" 
+TO "H156" 
+RAMSIZE(256) 

@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"MS-KB.obj" 
+TO "MS-KB" 
+RAMSIZE(256) 

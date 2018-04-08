@@ -1,0 +1,45 @@
+C51 COMPILER V6.12  MAIN                                                                   06/29/2012 15:36:41 PAGE 1   
+
+
+C51 COMPILER V6.12, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE .\main.c BROWSE DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          #include<reg52.h>
+   2          #include"LCD_driver.h"
+   3          #include"picture.h"
+   4          
+   5          
+   6          main()
+   7          { 
+   8   1      	 int j;
+   9   1        	 LCD_Init();      //TFT初始化
+  10   1       	 Pant( colors[7]>>8 ,  colors[7]);
+  11   1          LCD_CS =0;  //打开片选使能
+  12   1      	 Address_set(45,65,194,254); //设置坐标
+  13   1      	 for (j=0;j<57000/2;j++)	  
+  14   1      	   	{	   
+  15   2              	LCD_Write_DATA(Image[j*2+1],Image[j*2]);
+  16   2      	      }				  
+  17   1      		   	LCD_CS =1; 
+  18   1          while(1)
+  19   1      	     {   
+  20   2      		  }  
+  21   1      
+  22   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    114    ----
+   CONSTANT SIZE    =  57000    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

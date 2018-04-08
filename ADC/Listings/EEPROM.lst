@@ -1,0 +1,102 @@
+C51 COMPILER V9.56.0.0   EEPROM                                                            08/10/2017 10:44:23 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE EEPROM
+OBJECT MODULE PLACED IN .\Objects\EEPROM.obj
+COMPILER INVOKED BY: D:\Program Files (x86)\Keil_C51\C51\BIN\C51.EXE EEPROM.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEN
+                    -D PRINT(.\Listings\EEPROM.lst) TABS(2) OBJECT(.\Objects\EEPROM.obj)
+
+line level    source
+
+   1          
+   2          #include <EEPROM.h>
+   3          
+   4          //#define MAIN_Fosc   22118400L
+   5          
+   6          void  DisableEEPROM(void)
+   7          {
+   8   1        ISP_CONTR = 0;      
+   9   1        ISP_CMD   = 0;      
+  10   1        ISP_TRIG  = 0;      
+  11   1        ISP_ADDRH = 0xff;   
+  12   1        ISP_ADDRL = 0xff;   
+  13   1      }
+  14          
+  15          
+  16          
+  17          void EEPROM_read_n(u16 EE_address,u8 *DataAddress,u16 number)
+  18          {
+  19   1        EA = 0;   //????
+  20   1        ISP_CONTR = (ISP_EN + ISP_WAIT_FREQUENCY);  //??????,??ISP/IAP??,?????
+  21   1        ISP_READ();                 //??????,???????,???????
+  22   1        do
+  23   1        {
+  24   2          ISP_ADDRH = EE_address / 256;   //??????(??????????????)
+  25   2          ISP_ADDRL = EE_address % 256;   //??????
+  26   2          ISP_TRIG();             //??5AH,??A5H?ISP/IAP?????,???????
+  27   2                            //??A5H?,ISP/IAP?????????
+  28   2                            //CPU??IAP???,?????????
+  29   2          _nop_();
+  30   2          *DataAddress = ISP_DATA;      //???????
+  31   2          EE_address++;
+  32   2          DataAddress++;
+  33   2        }while(--number);
+  34   1      
+  35   1        DisableEEPROM();
+  36   1        EA = 1;   //??????
+  37   1      }
+  38          
+  39          
+  40          
+  41          void EEPROM_SectorErase(u16 EE_address)
+  42          {
+  43   1        EA = 0;   //????
+  44   1                            //??????,??????,512??/???
+  45   1                            //??????????????????
+  46   1        ISP_ADDRH = EE_address / 256;     //????????(??????????????)
+  47   1        ISP_ADDRL = EE_address % 256;     //????????
+  48   1        ISP_CONTR = (ISP_EN + ISP_WAIT_FREQUENCY);  //??????,??ISP/IAP??,?????
+  49   1        ISP_ERASE();              //???????,???????,???????
+  50   1        ISP_TRIG();
+  51   1        _nop_();
+  52   1        DisableEEPROM();
+  53   1        EA = 1;   //??????
+  54   1      }
+C51 COMPILER V9.56.0.0   EEPROM                                                            08/10/2017 10:44:23 PAGE 2   
+
+  55          
+  56          
+  57          void EEPROM_write_n(u16 EE_address,u8 *DataAddress,u16 number)
+  58          {
+  59   1        EA = 0;   //????
+  60   1      
+  61   1        ISP_CONTR = (ISP_EN + ISP_WAIT_FREQUENCY);  //??????,??ISP/IAP??,?????
+  62   1        ISP_WRITE();              //??????,???????,???????
+  63   1        do
+  64   1        {
+  65   2          ISP_ADDRH = EE_address / 256;   //??????(??????????????)
+  66   2          ISP_ADDRL = EE_address % 256;   //??????
+  67   2          ISP_DATA  = *DataAddress;     //????ISP_DATA,????????????
+  68   2          ISP_TRIG();
+  69   2          _nop_();
+  70   2          EE_address++;
+  71   2          DataAddress++;
+  72   2        }while(--number);
+  73   1      
+  74   1        DisableEEPROM();
+  75   1        EA = 1;   //??????
+  76   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    167    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      14
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,185 @@
+C51 COMPILER V9.56.0.0   PCA                                                               08/10/2017 15:04:03 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE PCA
+OBJECT MODULE PLACED IN PCA.OBJ
+COMPILER INVOKED BY: D:\Program Files (x86)\Keil_C51\C51\BIN\C51.EXE PCA.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND T
+                    -ABS(2)
+
+line level    source
+
+   1          /*---------------------------------------------------------------------*/
+   2          /* --- STC MCU Limited ------------------------------------------------*/
+   3          /* --- STC15F4K60S4 ÏµÁÐ PCAÊµÏÖ16Î»²¶»ñ¾ÙÀý---------------------------*/
+   4          /* --- Mobile: (86)13922805190 ----------------------------------------*/
+   5          /* --- Fax: 86-0513-55012956,55012947,55012969 ------------------------*/
+   6          /* --- Tel: 86-0513-55012928,55012929,55012966-------------------------*/
+   7          /* --- Web: www.STCMCU.com --------------------------------------------*/
+   8          /* --- Web: www.GXWMCU.com --------------------------------------------*/
+   9          /* Èç¹ûÒªÔÚ³ÌÐòÖÐÊ¹ÓÃ´Ë´úÂë,ÇëÔÚ³ÌÐòÖÐ×¢Ã÷Ê¹ÓÃÁËSTCµÄ×ÊÁÏ¼°³ÌÐò        */
+  10          /* Èç¹ûÒªÔÚÎÄÕÂÖÐÓ¦ÓÃ´Ë´úÂë,ÇëÔÚÎÄÕÂÖÐ×¢Ã÷Ê¹ÓÃÁËSTCµÄ×ÊÁÏ¼°³ÌÐò        */
+  11          /*---------------------------------------------------------------------*/
+  12          
+  13          //±¾Ê¾ÀýÔÚKeil¿ª·¢»·¾³ÏÂÇëÑ¡ÔñIntelµÄ8058Ð¾Æ¬ÐÍºÅ½øÐÐ±àÒë
+  14          //ÈôÎÞÌØ±ðËµÃ÷,¹¤×÷ÆµÂÊÒ»°ãÎª11.0592MHz
+  15          
+  16          
+  17          #include "reg51.h"
+  18          #include "intrins.h"
+  19          
+  20          #define FOSC    11059200L
+  21          
+  22          typedef unsigned char BYTE;
+  23          typedef unsigned int WORD;
+  24          typedef unsigned long DWORD;
+  25          
+  26          sfr P0M1 = 0x93;
+  27          sfr P0M0 = 0x94;
+  28          sfr P1M1 = 0x91;
+  29          sfr P1M0 = 0x92;
+  30          sfr P2M1 = 0x95;
+  31          sfr P2M0 = 0x96;
+  32          sfr P3M1 = 0xb1;
+  33          sfr P3M0 = 0xb2;
+  34          sfr P4M1 = 0xb3;
+  35          sfr P4M0 = 0xb4;
+  36          sfr P5M1 = 0xC9;
+  37          sfr P5M0 = 0xCA;
+  38          sfr P6M1 = 0xCB;
+  39          sfr P6M0 = 0xCC;
+  40          sfr P7M1 = 0xE1;
+  41          sfr P7M0 = 0xE2;
+  42          
+  43          sfr P_SW1       = 0xA2;             //ÍâÉè¹¦ÄÜÇÐ»»¼Ä´æÆ÷1
+  44          
+  45          #define CCP_S0 0x10                 //P_SW1.4
+  46          #define CCP_S1 0x20                 //P_SW1.5
+  47          
+  48          sfr CCON        =   0xD8;           //PCA¿ØÖÆ¼Ä´æÆ÷
+  49          sbit CCF0       =   CCON^0;         //PCAÄ£¿é0ÖÐ¶Ï±êÖ¾
+  50          sbit CCF1       =   CCON^1;         //PCAÄ£¿é1ÖÐ¶Ï±êÖ¾
+  51          sbit CR         =   CCON^6;         //PCA¶¨Ê±Æ÷ÔËÐÐ¿ØÖÆÎ»
+  52          sbit CF         =   CCON^7;         //PCA¶¨Ê±Æ÷Òç³ö±êÖ¾
+  53          sfr CMOD        =   0xD9;           //PCAÄ£Ê½¼Ä´æÆ÷
+  54          sfr CL          =   0xE9;           //PCA¶¨Ê±Æ÷µÍ×Ö½Ú
+C51 COMPILER V9.56.0.0   PCA                                                               08/10/2017 15:04:03 PAGE 2   
+
+  55          sfr CH          =   0xF9;           //PCA¶¨Ê±Æ÷¸ß×Ö½Ú
+  56          sfr CCAPM0      =   0xDA;           //PCAÄ£¿é0Ä£Ê½¼Ä´æÆ÷
+  57          sfr CCAP0L      =   0xEA;           //PCAÄ£¿é0²¶»ñ¼Ä´æÆ÷ LOW
+  58          sfr CCAP0H      =   0xFA;           //PCAÄ£¿é0²¶»ñ¼Ä´æÆ÷ HIGH
+  59          sfr CCAPM1      =   0xDB;           //PCAÄ£¿é1Ä£Ê½¼Ä´æÆ÷
+  60          sfr CCAP1L      =   0xEB;           //PCAÄ£¿é1²¶»ñ¼Ä´æÆ÷ LOW
+  61          sfr CCAP1H      =   0xFB;           //PCAÄ£¿é1²¶»ñ¼Ä´æÆ÷ HIGH
+  62          sfr CCAPM2      =   0xDC;           //PCAÄ£¿é2Ä£Ê½¼Ä´æÆ÷
+  63          sfr CCAP2L      =   0xEC;           //PCAÄ£¿é2²¶»ñ¼Ä´æÆ÷ LOW
+  64          sfr CCAP2H      =   0xFC;           //PCAÄ£¿é2²¶»ñ¼Ä´æÆ÷ HIGH
+  65          sfr PCA_PWM0    =   0xf2;           //PCAÄ£¿é0µÄPWM¼Ä´æÆ÷
+  66          sfr PCA_PWM1    =   0xf3;           //PCAÄ£¿é1µÄPWM¼Ä´æÆ÷
+  67          sfr PCA_PWM2    =   0xf4;           //PCAÄ£¿é2µÄPWM¼Ä´æÆ÷
+  68          
+  69          BYTE cnt;                           //´æ´¢PCA¼ÆÊ±Òç³ö´ÎÊý
+  70          DWORD count0;                       //¼ÇÂ¼ÉÏÒ»´ÎµÄ²¶»ñÖµ
+  71          DWORD count1;                       //¼ÇÂ¼±¾´ÎµÄ²¶»ñÖµ
+  72          DWORD length;                       //´æ´¢ÐÅºÅµÄÊ±¼ä³¤¶È(count1 - count0)
+  73          
+  74          void main()
+  75          {
+  76   1          P0M0 = 0x00;
+  77   1          P0M1 = 0x00;
+  78   1          P1M0 = 0x00;
+  79   1          P1M1 = 0x00;
+  80   1          P2M0 = 0x00;
+  81   1          P2M1 = 0x00;
+  82   1          P3M0 = 0x00;
+  83   1          P3M1 = 0x00;
+  84   1          P4M0 = 0x00;
+  85   1          P4M1 = 0x00;
+  86   1          P5M0 = 0x00;
+  87   1          P5M1 = 0x00;
+  88   1          P6M0 = 0x00;
+  89   1          P6M1 = 0x00;
+  90   1          P7M0 = 0x00;
+  91   1          P7M1 = 0x00;
+  92   1      
+  93   1          ACC = P_SW1;
+  94   1          ACC &= ~(CCP_S0 | CCP_S1);      //CCP_S0=0 CCP_S1=0
+  95   1          P_SW1 = ACC;                    //(P1.2/ECI, P1.1/CCP0, P1.0/CCP1, P3.7/CCP2)
+  96   1          
+  97   1      //  ACC = P_SW1;
+  98   1      //  ACC &= ~(CCP_S0 | CCP_S1);      //CCP_S0=1 CCP_S1=0
+  99   1      //  ACC |= CCP_S0;                  //(P3.4/ECI_2, P3.5/CCP0_2, P3.6/CCP1_2, P3.7/CCP2_2)
+ 100   1      //  P_SW1 = ACC;  
+ 101   1      //  
+ 102   1      //  ACC = P_SW1;
+ 103   1      //  ACC &= ~(CCP_S0 | CCP_S1);      //CCP_S0=0 CCP_S1=1
+ 104   1      //  ACC |= CCP_S1;                  //(P2.4/ECI_3, P2.5/CCP0_3, P2.6/CCP1_3, P2.7/CCP2_3)
+ 105   1      //  P_SW1 = ACC;  
+ 106   1      
+ 107   1          CCON = 0;                       //³õÊ¼»¯PCA¿ØÖÆ¼Ä´æÆ÷
+ 108   1                                          //PCA¶¨Ê±Æ÷Í£Ö¹
+ 109   1                                          //Çå³ýCF±êÖ¾
+ 110   1                                          //Çå³ýÄ£¿éÖÐ¶Ï±êÖ¾
+ 111   1          CL = 0;                         //¸´Î»PCA¼Ä´æÆ÷
+ 112   1          CH = 0;
+ 113   1          CCAP0L = 0;
+ 114   1          CCAP0H = 0;
+ 115   1          CMOD = 0x09;                    //ÉèÖÃPCAÊ±ÖÓÔ´ÎªÏµÍ³Ê±ÖÓ,ÇÒÊ¹ÄÜPCA¼ÆÊ±Òç³öÖÐ¶Ï
+ 116   1          CCAPM0 = 0x21;                  //PCAÄ£¿é0Îª16Î»²¶»ñÄ£Ê½(ÉÏÉýÑØ²¶»ñ,¿É²â´Ó¸ßµçÆ½¿ªÊ¼µÄÕû¸öÖÜÆÚ),ÇÒ²úÉú
+C51 COMPILER V9.56.0.0   PCA                                                               08/10/2017 15:04:03 PAGE 3   
+
+             -²¶»ñÖÐ¶Ï
+ 117   1      //  CCAPM0 = 0x11;                  //PCAÄ£¿é0Îª16Î»²¶»ñÄ£Ê½(ÏÂ½µÑØ²¶»ñ,¿É²â´ÓµÍµçÆ½¿ªÊ¼µÄÕû¸öÖÜÆÚ),ÇÒ²úÉú
+             -²¶»ñÖÐ¶Ï
+ 118   1      //  CCAPM0 = 0x31;                  //PCAÄ£¿é0Îª16Î»²¶»ñÄ£Ê½(ÉÏÉýÑØ/ÏÂ½µÑØ²¶»ñ,¿É²â¸ßµçÆ½»òÕßµÍµçÆ½¿í¶È),Ç
+             -Ò²úÉú²¶»ñÖÐ¶Ï
+ 119   1      
+ 120   1          CR = 1;                         //PCA¶¨Ê±Æ÷¿ªÊ¼¹¤×÷
+ 121   1          EA = 1;
+ 122   1      
+ 123   1          cnt = 0;
+ 124   1          count0 = 0;
+ 125   1          count1 = 0;
+ 126   1      
+ 127   1          while (1);
+ 128   1      }
+ 129          
+ 130          void PCA_isr() interrupt 7 using 1
+ 131          {
+ 132   1          if (CCF0)
+ 133   1          {
+ 134   2              CCF0 = 0;
+ 135   2              if (CF && ((CCAP0H & 0x80) == 0))
+ 136   2              {
+ 137   3                  CF = 0;
+ 138   3                  cnt++;
+ 139   3              }
+ 140   2              count0 = count1;            //±¸·ÝÉÏÒ»´ÎµÄ²¶»ñÖµ
+ 141   2              ((BYTE *)&count1)[3] = CCAP0L;  //±£´æ±¾´ÎµÄ²¶»ñÖµ
+ 142   2              ((BYTE *)&count1)[2] = CCAP0H;
+ 143   2              ((BYTE *)&count1)[1] = cnt;
+ 144   2              ((BYTE *)&count1)[0] = 0;
+ 145   2              length = count1 - count0;   //¼ÆËãÁ½´Î²¶»ñµÄ²îÖµ,¼´µÃµ½Ê±¼ä³¤¶È
+ 146   2              ((BYTE *)&length)[0] = 0;
+ 147   2          }
+ 148   1          if (CF)
+ 149   1          {
+ 150   2              CF = 0;
+ 151   2              cnt++;                      //PCA¼ÆÊ±Òç³ö´ÎÊý+1
+ 152   2          }
+ 153   1      }
+ 154          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    165    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     13    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

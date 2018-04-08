@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"MS15-LED.obj" 
+TO "MS15-LED" 
+RAMSIZE(256) 

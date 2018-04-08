@@ -1,0 +1,230 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        07/15/2013  12:51:13  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL\C51\BIN\BL51.EXE 1602LCD.obj TO 1602LCD RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  1602LCD.obj (1602LCD)
+  C:\KEIL\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  1602LCD (1602LCD)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+                    0008H     0018H                  *** GAP ***
+            BIT     0020H.0   0000H.1   UNIT         _BIT_GROUP_
+                    0020H.1   0000H.7                *** GAP ***
+            IDATA   0021H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     002FH     UNIT         ?PR?MAIN?1602LCD
+            CODE    0032H     0028H     UNIT         ?PR?INIT?1602LCD
+            CODE    005AH     0020H     UNIT         ?PR?_DELAYUS?1602LCD
+            CODE    007AH     001AH     UNIT         ?CO?1602LCD
+            CODE    0094H     0015H     UNIT         ?PR?BUSY?1602LCD
+            CODE    00A9H     0011H     UNIT         ?PR?_DELAYMS?1602LCD
+            CODE    00BAH     000FH     UNIT         ?PR?_WCMD?1602LCD
+            CODE    00C9H     000FH     UNIT         ?PR?_WDAT?1602LCD
+            CODE    00D8H     000CH     UNIT         ?C_C51STARTUP
+
+
+
+OVERLAY MAP OF MODULE:   1602LCD (1602LCD)
+
+
+SEGMENT                           BIT_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
+  +--> ?PR?MAIN?1602LCD
+
+?PR?MAIN?1602LCD               -----    -----
+  +--> ?PR?INIT?1602LCD
+  +--> ?PR?_WCMD?1602LCD
+  +--> ?CO?1602LCD
+  +--> ?PR?_WDAT?1602LCD
+
+?PR?INIT?1602LCD               -----    -----
+  +--> ?PR?_WCMD?1602LCD
+  +--> ?PR?_DELAYMS?1602LCD
+
+BL51 BANKED LINKER/LOCATER V6.22                                                      07/15/2013  12:51:13  PAGE 2
+
+
+?PR?_WCMD?1602LCD              -----    -----
+  +--> ?PR?BUSY?1602LCD
+  +--> ?PR?_DELAYUS?1602LCD
+
+?PR?BUSY?1602LCD               0020H.0  0000H.1
+  +--> ?PR?_DELAYUS?1602LCD
+
+?PR?_WDAT?1602LCD              -----    -----
+  +--> ?PR?BUSY?1602LCD
+  +--> ?PR?_DELAYUS?1602LCD
+
+
+
+SYMBOL TABLE OF MODULE:  1602LCD (1602LCD)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        1602LCD
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:00A0H         PUBLIC        P2
+  D:00A8H         PUBLIC        IE
+  B:00A0H.7       PUBLIC        EN
+  D:00B8H         PUBLIC        IP
+  D:00D8H         PUBLIC        CCON
+  B:00A0H.5       PUBLIC        RS
+  C:0003H         PUBLIC        main
+  B:00A0H.6       PUBLIC        RW
+  C:00BAH         PUBLIC        _WCMD
+  C:00C9H         PUBLIC        _WDAT
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  C:0032H         PUBLIC        init
+  C:0094H         PUBLIC        busy
+  C:00A9H         PUBLIC        _Delayms
+  C:0069H         PUBLIC        _Delayus
+  C:007AH         PUBLIC        dis1
+  C:0083H         PUBLIC        dis2
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _DELAYMS
+  D:0007H         SYMBOL        ms
+  -------         DO            
+  D:0006H         SYMBOL        i
+  D:0005H         SYMBOL        j
+  -------         ENDDO         
+  C:00A9H         LINE#         19
+  C:00A9H         LINE#         20
+  C:00A9H         LINE#         23
+  C:00AFH         LINE#         24
+  C:00AFH         LINE#         25
+  C:00B1H         LINE#         26
+  C:00B3H         LINE#         28
+  C:00B3H         LINE#         29
+  C:00B5H         LINE#         30
+  C:00B5H         LINE#         31
+  C:00B7H         LINE#         32
+BL51 BANKED LINKER/LOCATER V6.22                                                      07/15/2013  12:51:13  PAGE 3
+
+
+  C:00B9H         LINE#         33
+  -------         ENDPROC       _DELAYMS
+  -------         PROC          L?0029
+  -------         ENDPROC       L?0029
+  -------         PROC          _DELAYUS
+  D:0007H         SYMBOL        us
+  -------         DO            
+  D:0006H         SYMBOL        i
+  -------         ENDDO         
+  C:0069H         LINE#         35
+  C:0069H         LINE#         36
+  C:0069H         LINE#         39
+  C:006FH         LINE#         40
+  C:006FH         LINE#         41
+  C:0070H         LINE#         42
+  C:0071H         LINE#         43
+  C:0073H         LINE#         44
+  C:0079H         LINE#         46
+  -------         ENDPROC       _DELAYUS
+  -------         PROC          BUSY
+  -------         DO            
+  B:0020H.0       SYMBOL        mang
+  -------         ENDDO         
+  C:0094H         LINE#         52
+  C:0094H         LINE#         53
+  C:0094H         LINE#         55
+  C:0096H         LINE#         56
+  C:0098H         LINE#         57
+  C:009AH         LINE#         58
+  C:009FH         LINE#         59
+  C:00A4H         LINE#         60
+  C:00A6H         LINE#         61
+  C:00A8H         LINE#         62
+  -------         ENDPROC       BUSY
+  -------         PROC          _WCMD
+  D:0004H         SYMBOL        cmd
+  C:00BAH         LINE#         68
+  C:00BCH         LINE#         69
+  C:00BCH         LINE#         70
+  C:00C1H         LINE#         71
+  C:00C3H         LINE#         72
+  C:00C3H         LINE#         73
+  C:00C3H         LINE#         74
+  C:00C3H         LINE#         75
+  C:00C3H         LINE#         76
+  C:00C3H         LINE#         77
+  C:00C6H         LINE#         78
+  C:00C8H         LINE#         79
+  -------         ENDPROC       _WCMD
+  -------         PROC          _WDAT
+  D:0004H         SYMBOL        dat
+  C:00C9H         LINE#         85
+  C:00CBH         LINE#         86
+  C:00CBH         LINE#         87
+  C:00D0H         LINE#         88
+  C:00D2H         LINE#         89
+  C:00D2H         LINE#         90
+BL51 BANKED LINKER/LOCATER V6.22                                                      07/15/2013  12:51:13  PAGE 4
+
+
+  C:00D2H         LINE#         91
+  C:00D2H         LINE#         92
+  C:00D2H         LINE#         93
+  C:00D2H         LINE#         94
+  C:00D5H         LINE#         95
+  C:00D7H         LINE#         96
+  -------         ENDPROC       _WDAT
+  -------         PROC          INIT
+  C:0032H         LINE#         102
+  C:0032H         LINE#         103
+  C:0032H         LINE#         104
+  C:0037H         LINE#         105
+  C:003CH         LINE#         106
+  C:0041H         LINE#         107
+  C:0046H         LINE#         108
+  C:004BH         LINE#         109
+  C:0050H         LINE#         110
+  C:0055H         LINE#         111
+  -------         ENDPROC       INIT
+  -------         PROC          MAIN
+  -------         DO            
+  D:0003H         SYMBOL        i
+  -------         ENDDO         
+  C:0003H         LINE#         118
+  C:0003H         LINE#         119
+  C:0003H         LINE#         120
+  C:0005H         LINE#         121
+  C:0008H         LINE#         122
+  C:000DH         LINE#         123
+  C:0015H         LINE#         124
+  C:0015H         LINE#         125
+  C:0018H         LINE#         126
+  C:0019H         LINE#         127
+  C:001BH         LINE#         128
+  C:0020H         LINE#         129
+  C:0022H         LINE#         130
+  C:002AH         LINE#         131
+  C:002AH         LINE#         132
+  C:002DH         LINE#         133
+  C:002EH         LINE#         134
+  C:0030H         LINE#         135
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        1602LCD
+
+Program Size: data=9.1 xdata=0 code=228
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

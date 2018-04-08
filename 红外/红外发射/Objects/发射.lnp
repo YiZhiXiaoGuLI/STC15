@@ -1,0 +1,5 @@
+".\Objects\STARTUP.obj",
+".\Objects\·¢Éä.obj",
+".\Objects\onewire.obj" 
+TO ".\Objects\·¢Éä" 
+PRINT(".\Listings\·¢Éä.m51") RAMSIZE(256) 
